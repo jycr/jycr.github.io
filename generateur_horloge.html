@@ -17,12 +17,9 @@
 
 		.card {
 			display: inline-block;
-			width: 11.2em;
-			padding: 1em 1em;
-			margin: 0 1em;
-			text-align: center;
+			width: 12em;
+			margin: 0.5em 1em;
 			background-color: #FFF;
-			text-align: right;
 		}
 
 		p {
@@ -93,7 +90,7 @@
 			margin: 2em 0 0 0;
 		}
 
-		.reponse {
+		.reponse input {
 			border: none;
 			border-bottom: 1px dotted #BBB;
 			width: 2em;
@@ -106,10 +103,48 @@
 			font-size: 11px;
 			font-weight: bold;
 		}
+
+		@media print {
+			header {
+				display: none;
+			}
+		}
+
+		.reponse.secondes {
+			display: none;
+		}
+
+		.zone_reponse {
+			text-align: right;
+		}
+
+		.zone_reponse fieldset {
+			border: none;
+			padding: 0;
+		}
+
+		.zone_reponse legend {
+			text-overflow: ellipsis;
+			display: inline-block;
+			width: 2em;
+			white-space: nowrap;
+			float: left;
+		}
+
+		.afficheSecondes .reponse.secondes {
+			display: inline;
+		}
+
+		.afficheSecondes .zone_reponse {
+			font-size: 0.8em;
+		}
 	</style>
 </head>
 
 <body>
+	<header>
+		<p><label><input type="checkbox" name="afficher_secondes" /> Afficher les secondes</label></p>
+	</header>
 	<section>
 		<div class="card">
 			<input type="time" step="1" />
@@ -137,44 +172,52 @@
 					<use transform="rotate(90)" xlink:href="#graduation_quart" />
 					<use transform="rotate(180)" xlink:href="#graduation_quart" />
 					<use transform="rotate(270)" xlink:href="#graduation_quart" />
-					<g transform="translate(0,1)">
-						<text class="chiffre" style="transform:translate(0,-46px)">12</text>
+					<g transform="translate(0,1)" class="chiffre">
+						<text style="transform:translate(0,-46px)">12</text>
+						<text style="transform:rotate(330deg) translate(0,-46px) rotate(-330deg);">11</text>
+						<text style="transform:rotate(300deg) translate(0,-46px) rotate(-300deg);">10</text>
+						<text style="transform:rotate(270deg) translate(0,-46px) rotate(-270deg);">9</text>
+						<text style="transform:rotate(240deg) translate(0,-46px) rotate(-240deg);">8</text>
+						<text style="transform:rotate(210deg) translate(0,-46px) rotate(-210deg);">7</text>
+						<text style="transform:rotate(180deg) translate(0,-46px) rotate(-180deg);">6</text>
+						<text style="transform:rotate(150deg) translate(0,-46px) rotate(-150deg);">5</text>
+						<text style="transform:rotate(120deg) translate(0,-46px) rotate(-120deg);">4</text>
+						<text style="transform:rotate(90deg) translate(0,-46px) rotate(-90deg);">3</text>
+						<text style="transform:rotate(60deg) translate(0,-46px) rotate(-60deg);">2</text>
+						<text style="transform:rotate(30deg) translate(0,-46px) rotate(-30deg);">1</text>
 					</g>
 					<circle class="centre" r="1" />
 				</g>
 			</svg>
-			<p class="matin">
-				<label><em>matin :</em></label>
-				<span><input type="number" class="reponse" />h<input type="number" class="reponse" />min</span>
-			</p>
-			<p class="apres-midi">
-				<label><em>après-midi :</em></label>
-				<span><input type="number" class="reponse" />h<input type="number" class="reponse" />min</span>
-			</p>
+			<div class="zone_reponse">
+				<fieldset class="matin">
+					<legend>matin :</legend>
+					<label class="reponse"><input type="number" />h</label>
+					<label class="reponse"><input type="number" />min</label>
+					<label class="reponse secondes"><input type="number" />sec</label>
+				</fieldset>
+				<fieldset class="apres-midi">
+					<legend>après-midi :</legend>
+					<label class="reponse"><input type="number" />h</label>
+					<label class="reponse"><input type="number" />min</label>
+					<label class="reponse secondes"><input type="number" />sec</label>
+				</fieldset>
+			</div>
 		</div>
 	</section>
 	<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
 		integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8=" crossorigin="anonymous"></script>
 	<script>
 		(function ($) {
-			$('.chiffre').each(function () {
-				const $chiffre12 = $(this);
-				const style = this.style.transform;
-				for (let chiffre = 1; chiffre < 12; chiffre++) {
-					const angle = chiffre * 30;
-					const newStyle = 'rotate(' + angle + 'deg) ' + style + ' rotate(' + (-1 * angle) + 'deg)';
-					console.log("chiffre:", chiffre, newStyle);
-					$chiffre12.clone()
-						.css('transform', newStyle)
-						.text(chiffre)
-						.insertAfter($chiffre12);
-				}
-			});
 			function randomInteger(maxParam, minParam) {
 				minParam = minParam || 0;
 				const max = Math.max(maxParam, minParam);
 				const min = Math.min(maxParam, minParam);
 				return Math.floor(Math.random() * (max - min)) + min;
+			}
+			function randomIntegerStringWith2Digits(maxParam, minParam) {
+				const randomValue = randomInteger(maxParam, minParam);
+				return (randomValue > 9 ? "" : "0") + randomValue
 			}
 			function rotate($element, value, transposeFunction) {
 				if (isNaN(value)) {
@@ -205,14 +248,35 @@
 			for (let i = 0; i < 11; ++i) {
 				$cardTemplate.clone().insertAfter($cardTemplate);
 			}
-			$(document).on('input', '.card input[type="time"]', updateTime);
+			$(document)
+				.on('input', 'input[name="afficher_secondes"]', function () {
+					const afficherLesSecondes = this.checked;
+					$('.card input[type="time"]').each(function () {
+						const value = (this.value || '').split(':');
+						if (!afficherLesSecondes) {
+							value.length = 2;
+						}
+						else if (value.length < 3) {
+							value[2] = randomIntegerStringWith2Digits(0, 59);
+						}
+						console.log('afficher_secondes:', value, this);
+						this.value = value.join(':');
+					})
+						.trigger('input');
+					$('body').toggleClass('afficheSecondes', afficherLesSecondes);
+				})
+				.on('input', '.card input[type="time"]', updateTime)
+				;
 			$('.card input[type="time"]')
 				.each(function () {
 					if (!this.value) {
-						const randomHeures = randomInteger(0, 23);
-						const randomMinutes = randomInteger(0, 59);
-						const randomValue = (randomHeures > 9 ? "" : "0") + randomHeures + ':' + (randomMinutes > 9 ? "" : "0") + randomMinutes;
-						this.value = randomValue;
+						const value = [
+							// heure
+							randomIntegerStringWith2Digits(0, 23),
+							// minute
+							randomIntegerStringWith2Digits(0, 59)
+						]
+						this.value = value.join(':');
 					}
 				})
 				.trigger('input');
