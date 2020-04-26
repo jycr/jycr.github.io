@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title></title>
+    <style>
+        html {
+            font-size: 21px;
+            font-family: sans-serif;
+        }
+
+        h1 {
+            border-bottom: 1px solid #000;
+            font-size: 1em;
+            margin: 0 0 0.5em 0;
+        }
+
+        code {
+            display: inline-block;
+            text-align: right;
+            width: 5em;
+            margin: 0.5em 0;
+            padding-right: 3em;
+        }
+
+        .container {
+            page-break-inside: avoid;
+        }
+
+        label {
+            border-radius: 3px;
+            background-color: #CCC;
+            padding: 0 0.2em;
+        }
+
+        @media print {
+            .config {
+                display: none;
+            }
+        }
+
+        .resultat {
+            font-size: 0.6em;
+            position: absolute;
+            right: 0;
+            margin-top: -2.5em;
+            width: 30em;
+            text-align: right;
+        }
+
+        .resultat .time {
+            width: 4em;
+        }
+
+        .resultat .score {
+            width: 2em;
+        }
+
+        input,
+        select,
+        option {
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        .config input[type="number"] {
+            width: 2em;
+            text-align: right;
+        }
+
+        small {
+            font-weight: normal;
+            font-size: 0.8em;
+        }
+
+        h1 .range,
+        h1 .tables {
+            font-size: 0.8em;
+            font-weight: normal;
+        }
+    </style>
+</head>
+
+<body>
+    <form class="config" oninput="main()">
+        <input type="number" name="nombre" min="1" value="1" /> tables de
+        <select>
+            <option value="+">addition</option>
+            <option value="×" selected>multiplication</option>
+            <option value="−">soustraction</option>
+            <option value="÷">division</option>
+        </select>
+        (de
+        <input type="number" name="minValue" min="0" value="1" />
+        <input type="number" name="maxValue" min="0" value="9" />
+        ) :
+        <label><input type="checkbox" value="1" checked /> 1</label>
+        <label><input type="checkbox" value="2" checked /> 2</label>
+        <label><input type="checkbox" value="3" checked /> 3</label>
+        <label><input type="checkbox" value="4" checked /> 4</label>
+        <label><input type="checkbox" value="5" checked /> 5</label>
+        <label><input type="checkbox" value="6" checked /> 6</label>
+        <label><input type="checkbox" value="7" checked /> 7</label>
+        <label><input type="checkbox" value="8" checked /> 8</label>
+        <label><input type="checkbox" value="9" checked /> 9</label>
+        <label><input type="checkbox" value="10" /> 10</label>
+        <label><input type="checkbox" value="11" /> 11</label>
+        <label><input type="checkbox" value="12" /> 12</label>
+    </form>
+    <div id="result">
+    </div>
+    <script>
+        var filter = {
+            "+": function (a, b) { return true; },
+            "×": function (a, b) { return true; },
+            "−": function (a, b) { return a - b >= 0; },
+            "÷": function (a, b) { var v = a / b; return b>0 && v === Math.round(v); }
+        };
+
+        function creationTableau(config) {
+            var table = {};
+            var isValid = filter[config.operator] || function () { return true; };
+            for (var i = config.minValue; i <= config.maxValue; ++i) {
+                config.tables.forEach(function (element) {
+                    if (isValid(i, element)) {
+                        table[i + " " + config.operator + " " + element + " = "] = true;
+                    }
+                    if (isValid(element,i)) {
+                        table[element + " " + config.operator + " " + i + " = "] = true;
+                    }
+                });
+            }
+            return Object.keys(table);
+        }
+
+        function shuffle(array) {
+            var currentIndex = array.length,
+                temporaryValue, randomIndex;
+
+            // While there remain elements to shuffle...
+            while (0 !== currentIndex) {
+
+                // Pick a remaining element...
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex -= 1;
+
+                // And swap it with the current element.
+                temporaryValue = array[currentIndex];
+                array[currentIndex] = array[randomIndex];
+                array[randomIndex] = temporaryValue;
+            }
+
+            return array;
+        }
+
+        function creerTables(config, result) {
+
+            var container = document.createElement('div');
+            container.className = "container";
+
+            var title = document.createElement('h1');
+            title.innerHTML = [
+                'Table de ',
+                config.operatorLabel,
+                ' <span class="range">(',
+                config.minValue,
+                ' à ',
+                config.maxValue,
+                ')</small> : <span class="tables">',
+                config.tables,
+                '</span>'
+            ].join('');
+            container.appendChild(title);
+
+            var resultat = document.createElement('p');
+            resultat.id = "resultat";
+            resultat.className = "resultat";
+            resultat.innerHTML = 'Temps: <input class="time"/> min | score: <input class="score"/> / ';
+            container.appendChild(resultat);
+
+            window.title = title;
+
+            var tableau = creationTableau(config);
+            var proposition = shuffle(tableau);
+            for (var k = 0; k < proposition.length; ++k) {
+                var p = document.createElement('code');
+                p.innerHTML = proposition[k];
+                container.appendChild(p);
+            }
+            resultat.innerHTML += tableau.length;
+            result.appendChild(container);
+        }
+
+        function getConfig() {
+            var configForm = document.querySelector("form");
+
+            var checkedArrays = Array.from(configForm.querySelectorAll('input:checked'));
+            var tables = checkedArrays.map(e => parseInt(e.value, 10));
+
+            var typeTable = configForm.querySelectorAll('option:checked').item(0);
+            return {
+                operator: typeTable.value,
+                operatorLabel: typeTable.text,
+                minValue: parseInt(configForm.querySelector('[name="minValue"]').value, 10),
+                maxValue: parseInt(configForm.querySelector('[name="maxValue"]').value, 10),
+                nombre: parseInt(configForm.querySelector('[name="nombre"]').value, 10),
+                tables: tables
+            };
+        }
+
+        function main() {
+            var result = document.getElementById('result');
+            result.innerHTML = "";
+
+            var config = getConfig();
+
+            for (var i = 0; i < config.nombre; ++i) {
+                creerTables(config, result);
+            }
+        }
+        main();
+    </script>
+</body>
+
+</html>

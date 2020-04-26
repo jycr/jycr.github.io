@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Grandeurs et mesures</title>
+	<style>
+		body {
+			background-color: silver;
+			font-family: "Segoe UI", sans-serif;
+			font-size: 25px;
+		}
+
+		.card {
+			display: inline-block;
+			margin: 1em;
+			width: 8em;
+			padding: 2em 0;
+			text-align: center;
+			background-color: #FFF;
+		}
+
+		.unit {
+			padding: 0 0.5em;
+			font-weight: bold;
+		}
+
+		input[type="checkbox"] {
+			width: 2em;
+			height: 2em;
+			vertical-align: middle;
+			margin: 0 1em 0 0;
+		}
+	</style>
+</head>
+<body>
+<script
+		src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+		integrity="sha256-pasqAKBDmFT4eHoN2ndd6lN370kFiGUFyTiUHWhU7k8="
+		crossorigin="anonymous"></script>
+<script>
+	(function ($) {
+		function randomInteger(maxParam, minParam) {
+			minParam = minParam || 0;
+			const max = Math.max(maxParam, minParam);
+			const min = Math.min(maxParam, minParam);
+			return Math.floor(Math.random() * (max - min)) + min;
+		}
+
+		function randomMultiInteger(maxParam) {
+			const maxParamNbDigits = ("" + maxParam).length;
+			const nbDigits = randomInteger(maxParamNbDigits, 1);
+			if (nbDigits === maxParamNbDigits) {
+				return randomInteger(maxParam);
+			}
+			return randomInteger(Math.pow(10, nbDigits));
+		}
+
+		function randomItem(array, alreadyPick) {
+			let result;
+			if (alreadyPick && Object.keys(alreadyPick).length === array.length) {
+				return null;
+			}
+			do {
+				result = array[randomInteger(array.length)];
+			}
+			while (alreadyPick && alreadyPick[result]);
+			if (alreadyPick) {
+				alreadyPick[result] = true;
+			}
+			return result;
+		}
+
+		const UNIT_MASSE = ["mg", "cg", "dg", "g", "dag", "hg", "kg", "q", "t"];
+		const UNIT_VOLUME = ["ml", "cl", "dl", "l", "dal", "hl"];
+		const UNIT_DISTANCE = ["mm", "cm", "dm", "m", "dam", "hm", "km"];
+
+		const ALL_UNITS = UNIT_MASSE.concat(UNIT_VOLUME).concat(UNIT_DISTANCE);
+
+
+		class Card {
+			constructor(value, unit) {
+				this.unit = unit;
+				this.value = value;
+			}
+
+			getHtml() {
+				return ['<label class="card"><input type="checkbox"/><span class="value">', this.value, '</span><span class="unit">', unit, '</span></label>'].join('');
+			}
+		}
+
+		const alreadyPickedUnit = {};
+		let unit;
+		while ((unit = randomItem(ALL_UNITS, alreadyPickedUnit)) !== null) {
+			const card = new Card(randomMultiInteger(10000), unit);
+			$('body').append(card.getHtml());
+		}
+
+	})(jQuery);
+</script>
+</body>
+</html>
