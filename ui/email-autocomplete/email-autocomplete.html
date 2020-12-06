@@ -3,10 +3,10 @@
 <head>
 	<meta charset="utf-8"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
-	<title>Title</title>
+	<title>Email AutoComplete</title>
 	<style>
 		@media (min-width: 50em) {
-			body {
+			section {
 				display: flex;
 			}
 
@@ -32,72 +32,169 @@
 	</style>
 </head>
 <body>
-<form>
-	<h1>Email AutoComplete</h1>
-	<p>
-		<label for="email_1">email</label>
-		<input type="email"
-			   id="email_1"
-			   name="email_1"
-			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-		/>
-	</p>
-	<p><input type="submit"/></p>
-</form>
-<form method="post">
-	<h2>With password field</h2>
-	<p><em>test with browser password manager</em></p>
-	<p>
-		<label for="email_2">email</label>
-		<input type="email"
-			   id="email_2"
-			   name="email_2"
-			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-		/>
-	</p>
-	<p>
-		<label for="pass_2">Password</label>
-		<input type="password"
-			   id="pass_2"
-			   name="pass_2"
-			   autocomplete="current-password"
-		/>
-	</p>
-	<p><input type="submit"/></p>
-</form>
-<form method="post">
-	<h2>With password field</h2>
-	<p><em>test with browser password manager</em></p>
-	<p>
-		<label for="email_3">email</label>
-		<input type="email"
-			   id="email_3"
-			   name="email_3"
-			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-		/>
-	</p>
-	<p>
-		<label for="pass_3">Password</label>
-		<input type="password"
-			   id="pass_3"
-			   name="pass_3"
-			   disabled
-			   autocomplete="new-password"
-		/>
-	</p>
-	<p><input type="submit"/></p>
-</form>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.slim.min.js"
-		integrity="sha512-/DXTXr6nQodMUiq+IUJYCt2PPOUjrHJ9wFrqpJ3XkgPNOZVfMok7cRw6CSxyCQxXn6ozlESsSh1/sMCTF1rL/g=="
+<h1>Email AutoComplete</h1>
+<section>
+	<form>
+		<h2>Without timeout</h2>
+		<p>
+			<label for="email_0">email</label>
+			<input type="email"
+				   id="email_0"
+				   name="email_0"
+				   data-timeout="-1"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+	<form>
+		<h2>At the beginning</h2>
+		<p>
+			<label for="email_sb">email</label>
+			<input type="email"
+				   id="email_sb"
+				   name="email_sb"
+				   data-startautocomplete="beginning"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+	<form>
+		<h2>With timeout</h2>
+		<p>
+			<label for="email_1">email</label>
+			<input type="email"
+				   id="email_1"
+				   name="email_1"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+</section>
+<section>
+	<form>
+		<h2>With timeout - input</h2>
+		<p>
+			<label for="email_input">email</label>
+			<input type="email"
+				   id="email_input"
+				   name="email_input"
+				   data-emailautocompleteon="input"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+	<form>
+		<h2>With timeout - keypress</h2>
+		<p>
+			<label for="email_keypress">email</label>
+			<input type="email"
+				   id="email_keypress"
+				   name="email_keypress"
+				   data-emailautocompleteon="keypress"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+	<form>
+		<h2>Without timeout - keydown</h2>
+		<p>
+			<label for="email_keydown">email</label>
+			<input type="email"
+				   id="email_keydown"
+				   name="email_keydown"
+				   data-timeout="-1"
+				   data-startautocomplete="beginning"
+				   data-emailautocompleteon="keydown"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+	<form>
+		<h2>With timeout - keyup</h2>
+		<p>
+			<label for="email_keyup">email</label>
+			<input type="email"
+				   id="email_keyup"
+				   name="email_keyup"
+				   data-emailautocompleteon="keyup"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+			<input type="submit"/>
+		</p>
+	</form>
+</section>
+<section>
+	<form method="post">
+		<h2>With password field</h2>
+		<p><em>test with browser password manager</em></p>
+		<p>
+			<label for="email_2">email</label>
+			<input type="email"
+				   id="email_2"
+				   name="email_2"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+		</p>
+		<p>
+			<label for="pass_2">Password</label>
+			<input type="password"
+				   id="pass_2"
+				   name="pass_2"
+				   autocomplete="current-password"
+			/>
+		</p>
+		<p><input type="submit"/></p>
+	</form>
+	<form method="post">
+		<h2>With disabled password field</h2>
+		<p><em>test with browser password manager</em></p>
+		<p>
+			<label for="email_3">email</label>
+			<input type="email"
+				   id="email_3"
+				   name="email_3"
+				   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+			/>
+		</p>
+		<p>
+			<label for="pass_3">Password</label>
+			<input type="password"
+				   id="pass_3"
+				   name="pass_3"
+				   disabled
+				   autocomplete="new-password"
+			/>
+		</p>
+		<p><input type="submit"/></p>
+	</form>
+</section>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+		integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
 		crossorigin="anonymous"></script>
-<script src="jquery.emailAutocomplete.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/datalist-polyfill/1.24.4/datalist-polyfill.min.js"
+		integrity="sha512-njgkJe8kuqyz2AauUKsvQ3fhqbLsshNovMTWXLmy7x+lfrHdF8TxDlLQofXG9EBYirKYWmNJlGs0qA7340U6ug=="
+		crossorigin="anonymous"></script>
 <script>
-	$('input[data-emaildomain]').emailAutocomplete({
-		domains: function (input) {
-			return input.dataset.emaildomain
-				.replace((/^\[ *| *\]$/g), '')
-				.split((/\s*,\s*/));
-		}
+	$.getScript("jquery.emailAutocomplete.js", function () {
+		$('input[data-emaildomains]').each(function () {
+			var $this = $(this);
+			$this.emailAutocomplete({
+				event:$this.data("emailautocompleteon"),
+				startAtBeginning: $this.data("startautocomplete") === "beginning",
+				timeout: parseInt($this.data('timeout') || "100", 10),
+				domains: function (input) {
+					return input.dataset.emaildomains
+						.replace((/^\[ *| *\]$/g), '')
+						.split((/\s*,\s*/));
+				}
+			});
+		});
 	});
 </script>
 </body>

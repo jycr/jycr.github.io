@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8"/>
+	<title>Title</title>
+	<link href="https://bevacqua.github.io/horsey/dist/horsey.css" rel="stylesheet" type="text/css"/>
+	<style>html {
+		font-size: 2em;
+	}
+
+	input {
+		font-size: inherit;
+	}
+
+	input::-webkit-calendar-picker-indicator {
+		display: none;
+	}
+	</style>
+</head>
+<body>
+<h1>Email AutoComplete</h1>
+<form>
+	<input name="x"
+		   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+		   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
+		   type="email"
+		   maxLength="250"
+		   value=""/>
+	<input name="y"
+		   data-emaildomains="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+		   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
+		   type="email"
+		   maxLength="250"
+		   value=""/>
+	<!--<input style="opacity: 0;height: 0;width: 0;position: absolute" />-->
+	<input
+			disabled="disabled"
+			style="display: none"
+			type="password" value="" autocomplete="off"/>
+</form>
+<script src="https://bevacqua.github.io/horsey/dist/horsey.js"></script>
+<script>
+	ACC = {
+		autocompleteEmail: {
+			selector: {
+				inputEmail: 'input[data-emaildomains]'
+			},
+			genUid: function () {
+				return "ui-id-" + Math.floor(Math.random() * 26) + Date.now();
+			},
+			getDomains: function (input) {
+				return input.dataset.emaildomains
+					.replace((/^\[ *| *\]$/g), '')
+					.split((/\s*,\s*/));
+			},
+			setupEmailDomainAutocomplete: function (input) {
+				var prefix = input.value.split('@')[0];
+				input.list.innerHTML = ACC.autocompleteEmail.getDomains(input)
+					.map(function (domain) {
+						return '<option value="' + prefix + '@' + domain + '"/>';
+					}).join('');
+			}
+		}
+	};
+	document.querySelectorAll(ACC.autocompleteEmail.selector.inputEmail)
+		.forEach(function (input) {
+			horsey(input, {
+				source: function (data, done) {
+					if (data.input.indexOf('@') > 0) {
+						var prefix = data.input.split('@')[0];
+						done(null, [{
+							list: ACC.autocompleteEmail.getDomains(input)
+								.map(function (domain) {
+									return prefix + '@' + domain;
+								})
+						}]);
+					} else {
+						done(null, [{
+							list: []
+						}]);
+					}
+				}
+			});
+		});
+
+</script>
+<!-- resources :
+https://github.com/bevacqua/horsey
+-->
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="utf-8"/>
+	<title>Title</title>
+	<style>html {
+		font-size: 2em;
+	}
+
+	input {
+		font-size: inherit;
+	}
+
+	input::-webkit-calendar-picker-indicator {
+		display: none;
+	}
+	</style>
+</head>
+<body>
+<h1>Email AutoComplete</h1>
+<form>
+	<input name="x"
+		   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+		   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
+		   type="email"
+		   maxLength="250"
+		   value=""/>
+	<input name="y"
+		   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
+		   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
+		   type="email"
+		   maxLength="250"
+		   value=""/>
+	<!--<input style="opacity: 0;height: 0;width: 0;position: absolute" />-->
+	<input
+			disabled="disabled"
+			style="display: none"
+			type="password" value="" autocomplete="off"/>
+</form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.slim.min.js"
+		integrity="sha512-/DXTXr6nQodMUiq+IUJYCt2PPOUjrHJ9wFrqpJ3XkgPNOZVfMok7cRw6CSxyCQxXn6ozlESsSh1/sMCTF1rL/g=="
+		crossorigin="anonymous"></script>
+<script>
+	ACC = {
+		autocompleteEmail: {
+			selector: {
+				inputEmail: 'input[data-emaildomain]'
+			},
+			genUid: function () {
+				return "ui-id-" + Math.floor(Math.random() * 26) + Date.now();
+			},
+			setupEmailDomainAutocomplete: function (input) {
+				var prefix = input.value.split('@')[0];
+				input.list.innerHTML = input.dataset.emaildomain
+					.replace((/^\[ *| *\]$/g), '')
+					.split((/\s*,\s*/))
+					.map(function (domain) {
+						return '<option value="' + prefix + '@' + domain + '"/>';
+					}).join('');
+			}
+		}
+	};
+
+
+	$(document).on('keyup', ACC.autocompleteEmail.selector.inputEmail, function (e) {
+		var input = this;
+		if (!input.list) {
+			// Initialisation de la datalist si elle n'existe pas, et rattachement à l'input
+			var id = ACC.autocompleteEmail.genUid();
+			$('<datalist id="' + id + '"/>').insertAfter(input);
+			$(input).attr('list', id);
+		}
+		if (input.value.indexOf("@") < 0) {
+			// Le symbole '@' n'est pas encore saisie, on n'affiche pas d'autocomplete
+			input.autocomplete = input._defaultAutocomplete;
+			// on réinitialise les éventuelles valeurs précédentes
+			input.list.innerHTML = '';
+			input.lastValue = null;
+			return;
+		}
+		var prefix = input.value.split('@')[0];
+		if (input.lastValue !== prefix) {
+			input.lastValue = prefix;
+			if (!input._defaultAutocomplete) {
+				input._defaultAutocomplete = input.autocomplete;
+			}
+			// https://bugzilla.mozilla.org/show_bug.cgi?id=1474137
+			input.autocomplete = "off";
+			clearTimeout(input._timer);
+			input._timer = setTimeout(function () {
+				ACC.autocompleteEmail.setupEmailDomainAutocomplete(input);
+			}, 10);
+		}
+	});
+</script>
+<!-- resources :
+https://jsfiddle.net/rudiedirkx/r3jbfpxw/
+https://codepen.io/callmetimm/pen/GJGorp
+-->
+</body>
+</html>
