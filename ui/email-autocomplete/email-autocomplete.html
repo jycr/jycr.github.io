@@ -2,8 +2,19 @@
 <html lang="fr">
 <head>
 	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
 	<title>Title</title>
 	<style>
+		@media (min-width: 50em) {
+			body {
+				display: flex;
+			}
+
+			form {
+				flex: 1;
+			}
+		}
+
 		input {
 			font-size: inherit;
 		}
@@ -11,25 +22,24 @@
 		input::-webkit-calendar-picker-indicator {
 			display: none;
 		}
-		body {
-			display: flex;
-		}
+
 		form {
-			flex:1;
+			border: 1px solid #AAA;
+			padding: 1em;
+			margin: 1em;
 		}
+
 	</style>
 </head>
 <body>
 <form>
 	<h1>Email AutoComplete</h1>
 	<p>
-		<label for="email1">email</label>
-		<input id="email1"
-			   name="x"
+		<label for="email_1">email</label>
+		<input type="email"
+			   id="email_1"
+			   name="email_1"
 			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-			   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
-			   type="email"
-			   maxLength="250"
 		/>
 	</p>
 	<p><input type="submit"/></p>
@@ -38,20 +48,19 @@
 	<h2>With password field</h2>
 	<p><em>test with browser password manager</em></p>
 	<p>
-		<label for="email2">email</label>
-		<input id="email2"
-			   name="y"
+		<label for="email_2">email</label>
+		<input type="email"
+			   id="email_2"
+			   name="email_2"
 			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-			   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
-			   type="email"
-			   maxLength="250"
 		/>
 	</p>
 	<p>
-		<label for="pass2">Password</label>
-		<input
-				id="pass2"
-				type="password"
+		<label for="pass_2">Password</label>
+		<input type="password"
+			   id="pass_2"
+			   name="pass_2"
+			   autocomplete="current-password"
 		/>
 	</p>
 	<p><input type="submit"/></p>
@@ -60,21 +69,20 @@
 	<h2>With password field</h2>
 	<p><em>test with browser password manager</em></p>
 	<p>
-		<label for="email3">email</label>
-		<input id="email3"
-			   name="y"
+		<label for="email_3">email</label>
+		<input type="email"
+			   id="email_3"
+			   name="email_3"
 			   data-emaildomain="[gmail.com, outlook.com, orange.fr, free.fr, sfr.fr, yahoo.fr, hotmail.fr]"
-			   pattern="^([A-Za-z0-9_%+-]+.)*[A-Za-z0-9_%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,64}$"
-			   type="email"
-			   maxLength="250"
 		/>
 	</p>
 	<p>
-		<label for="pass3">Password</label>
-		<input
-				id="pass3"
-				disabled
-				type="password"
+		<label for="pass_3">Password</label>
+		<input type="password"
+			   id="pass_3"
+			   name="pass_3"
+			   disabled
+			   autocomplete="new-password"
 		/>
 	</p>
 	<p><input type="submit"/></p>
