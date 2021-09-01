@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 297 420" version="1.1" style="height:420mm;width:297mm;stroke:#000;fill:none;stroke-width:.1mm;stroke-linejoin:round">
+	<g style="transform:translate(78.6mm,0) scale(-1,1);opacity:0">
+		<image xlink:href="modele_pochette.svg" style="width:100%" />
+	</g>
+	<style>
+		.label rect {
+			stroke: none;
+		}
+
+		.hightlight1 .label rect {
+			fill: #bccae4;
+		}
+
+		.hightlight2 .label rect {
+			fill: #d4ff00;
+		}
+
+		.hightlight3 .label rect {
+			fill: #f1c573;
+		}
+
+		.hightlight4 .label rect {
+			fill: #f37a7a;
+		}
+
+		.hightlight1 .mark,
+		.hightlight1 .contour {
+			stroke: #83a7eb;
+		}
+
+		.hightlight2 .mark,
+		.hightlight2 .contour {
+			stroke: #b5d900;
+		}
+
+		.hightlight3 .mark,
+		.hightlight3 .contour {
+			stroke: #f1c573;
+		}
+
+		.hightlight4 .mark,
+		.hightlight4 .contour {
+			stroke: #f37a7a;
+		}
+
+		text {
+			fill: #000;
+			stroke: none;
+			font-size: 2mm;
+			text-anchor: middle;
+			font-family: Arial, sans-serif;
+		}
+
+		.hightlight1 .contour {
+			stroke-dashoffset: 3;
+			stroke-dasharray: 4 5;
+		}
+
+		.hightlight2 .contour {
+			stroke-dashoffset: 1;
+		}
+
+		.hightlight3 .contour {
+			stroke-dashoffset: 7;
+		}
+
+		.hightlight4 .contour {
+			stroke-dashoffset: 5;
+		}
+
+		.contour {
+			stroke-width: 2;
+			stroke-dasharray: 3 6;
+		}
+
+		.small {
+			font-size: 1.5mm;
+		}
+
+		.pli1 {
+			stroke-dasharray: 1 1;
+			stroke-width: .1;
+		}
+
+		.pli2 {
+			stroke-dasharray: 3 5;
+			stroke-width: .1;
+		}
+
+		.mark {
+			fill: none;
+			stroke: #e80000;
+			stroke-linecap: round;
+		}
+
+		.hightlight1 .mark {
+			stroke-width: 3;
+		}
+
+		.hightlight2 .mark {
+			stroke-width: 4;
+		}
+
+		.hightlight3 .mark {
+			stroke-width: 5;
+		}
+
+		.hightlight4 .mark {
+			stroke-width: 6;
+		}
+
+		.entailles {
+			fill: #e80000;
+			stroke: #e80000;
+			stroke-linecap: round;
+			stroke-width: 1;
+		}
+	</style>
+	<path d="
+		M43.5  20v31.5
+		M253.5 20v31.5
+		M20  61.5h13.5
+		M277 61.5h-13.5
+
+		M43.5  400v-31.5
+		M253.5 400v-31.5
+		M20  358.5h13.5
+		M277 358.5h-13.5
+	" />
+	<g transform="translate(43.5,61.5)">
+		<path d="M0 0h210v297H0z" id="A4" />
+		<g id="coin" class="hightlight1" transform="translate(210,0) rotate(90)">
+			<g id="a">
+				<path d="M0 0h50v25H0z" />
+				<path class="pli1" d="M0 25 25 0 50 25" />
+				<g class="label" transform="translate(25,14)">
+					<rect x="-8" width="16" height="9" y="-7" />
+					<rect x="-13" width="26" height="8" y="1" />
+					<text>coin</text>
+					<text y="7" class="small">(2,5x5cm)</text>
+				</g>
+			</g>
+			<use transform="translate(50)" xlink:href="#a" />
+			<use transform="translate(100)" xlink:href="#a" />
+			<use transform="translate(150)" xlink:href="#a" />
+			<path class="contour" d="
+				M0 0v25h200v-25z
+				M 50 0v25
+				M100 0v25
+				M150 0v25
+			" />
+		</g>
+		<g id="feuille_marbre" class="hightlight2">
+			<rect width="200" height="260" x="10" />
+			<rect width="200" height="260" x="10" class="contour" />
+			<g class="label" transform="translate(62,255)">
+				<rect x="-49" width="98" height="9" y="-7" />
+				<text>1 feuille marbrée (20x26 cm)</text>
+			</g>
+		</g>
+		<g id="feuille_carton" class="hightlight3">
+			<rect width="170" height="230" x="40" />
+			<rect width="170" height="230" x="40" class="contour" />
+			<g class="label" transform="translate(100,210)">
+				<rect x="-50" width="100" height="9" y="-7" />
+				<text>1 feuille cartonnée (17x23 cm)</text>
+			</g>
+			<path class="pli1" d="M40 115h170" />
+		</g>
+		<g id="feuille_carton-marks" class="hightlight3">
+			<path class="mark" d="
+				M40 0v4
+				M40 230v-4M40 230h4
+				M210 230h-4
+
+				M40 115h4
+				M210 115h-4
+			" />
+			<path class="entailles" d="
+				M40 0v2
+				M40 230v-4M40 230h4
+				M210 230h-2
+
+				M40 115h3
+				M210 115h-3
+			" />
+		</g>
+		<g id="feuille_marbre-marks" class="hightlight2">
+			<path class="mark" d="
+				M10 0v4
+				M10 260v0
+
+				M10 260v-4M10 260h4
+
+				M210 260h-2
+
+				M25 15v6l6-6z
+				M195 15v6l-6-6z
+				M25 245v-6l6 6z
+				M195 245v-6l-6 6z
+			" />
+			<path class="entailles" d="
+				M10 0v2
+
+				M10 260v-4M10 260h4
+
+				M210 260h-2
+
+				M25 15v6l6-6z
+				M195 15v6l-6-6z
+				M25 245v-6l6 6z
+				M195 245v-6l-6 6z
+			" />
+		</g>
+		<g id="coin-marks" class="hightlight1" transform="translate(210,0) rotate(90)">
+			<path class="mark" d="
+				M0   25h4
+				M50  0v4M25  0v4M50  25v-4
+				M100 0v4M75  0v4M100 25v-4
+				M150 0v4M125 0v4M150 25v-4
+				M200 0v4M175 0v4M200 25v-4M200 25h-4
+			" />
+			<path class="entailles" d="
+				M0   25h2
+				M50  0v2M25  0v2M50  25v-2
+				M100 0v2M75  0v2M100 25v-2
+				M150 0v2M125 0v2M150 25v-2
+				M200 0v2M175 0v2M200 25v-3M200 25h-3
+			" />
+		</g>
+		<g id="titre" transform="translate(100,50)" font-weight="bold">
+			<text>Patrons pour le &quot;cahier&quot;</text>
+		</g>
+	</g>
+</svg>
