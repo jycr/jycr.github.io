@@ -10,6 +10,6 @@ Permet de générer des feuilles d'évaluations pour des enfants en primaires :
 
 ## [Papiers marbrés](https://fr.wikipedia.org/wiki/Papier_marbr%C3%A9)
 
-* [Modèles/patrons](atelier-papier-marbre/modeles_atelier_papier_marbre.pdf) (source SVG des modèles : [cahier](atelier-papier-marbre/sources/modele_cahier.svg), [pochette](atelier-papier-marbre/sources/modele_pochette.svg), [enveloppe](atelier-papier-marbre/sources/modele_enveloppe.svg))
+* [Modèles/patrons](atelier-papier-marbre/sources/index.html) (le QRCode permet de récupérer le modèle au format numérique : fichier compressé en GZIP nommé index.htm → fonctionne même hors réseau)
 
 Exemple de matériel : [Marbling Art For Fabric and Paper](https://www.amazon.fr/TBC-Best-Crafts-Peinture-Boutaille/dp/B089NMD789)
