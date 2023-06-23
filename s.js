@@ -6,14 +6,14 @@
     (celle-ci ne généreront plus à leur tour le QRCode )
 
 */
-let d = document,$$ = s => d.querySelectorAll(s), $ = s => $$(s)[0], h = $("html").outerHTML, Q;
+let d = document, $$ = s => d.querySelectorAll(s), $ = s => $$(s)[0], h = $("html").outerHTML, Q;
 s = d.createElement('script');
 s.src = "https://cdn.jsdelivr.net/npm/qrcode-svg@1.1.0/dist/qrcode.min.js";
 Q = d.createElement('b');
-Q.className = "qrcode";
+Q.className = "qrcode q1";
 $('main div.e').prepend(Q);
 Q = d.createElement('b');
-Q.className = "qrcode";
+Q.className = "qrcode q2";
 $$('h2')[2].after(Q);
 s.onload = () => {
     s = new CompressionStream('gzip');
@@ -52,5 +52,5 @@ s.onload = () => {
 };
 $('head').appendChild(s);
 s = d.createElement('style');
-s.innerText += "b svg{height:100mm;width:100mm;margin:2mm 0 0 9mm}";
+s.innerText += ".q1 svg{height:110mm;width:110mm;margin:1mm 0 0 1mm;stroke:none}.q2 svg{height:135mm;width:135mm;margin:0px 0 0 -21mm;stroke:none}";
 $('head').appendChild(s);
