@@ -25,7 +25,7 @@
 	<div
 			class="flex flex-col items-start w-full items-center justify-center align-middle"
 	>
-		<div class="text-xl my-4">Data Receiver Mode</div>
+		<div class="text-xl my-4">[0] Data Receiver Mode</div>
 		<div class="text-sm mb-4">{{user_message}}</div>
 		<div class="text-sm mb-4">
 			Progress: {{Object.keys(decoded_chunks).length}} /
@@ -66,7 +66,7 @@
 	</div>
 </div>
 <script src="js/vue.global.js"></script>
-<script src="js/zbar-wasm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@latest/dist/index.js"></script>
 <script src="js/pako.min.js"></script>
 <script>
     const {createApp, ref, reactive, onMounted, computed} = Vue;
@@ -135,7 +135,7 @@
                     file_metadata.chunks != Object.keys(decoded_chunks.value).length
                     ) {
                     try {
-                        await new Promise((r) => setTimeout(r, 10));
+                        await new Promise((r) => setTimeout(r, 5));
                         context.drawImage(videoElement, 0, 0);
                         image_data = context.getImageData(
                             0,
@@ -147,6 +147,7 @@
                         if (!symbols || !symbols.length) {
                             continue;
                         }
+                        console.log("symbols:",symbols);
                         let decoded_data = symbols[0].decode();
                         if (decoded_data.includes("chunks")) {
                             new_file_metadata = JSON.parse(decoded_data);
