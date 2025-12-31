@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8"/>
+	<title>QRCode - generator</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+	<style>
+        html, body {
+            margin: 0;
+            font-family: sans-serif;
+            height: 100%;
+        }
+
+        .field {
+            margin: 0 10px 0 0;
+        }
+
+        input[type=text],
+        input[type=number] {
+            border: solid 1px #000;
+            padding: 0.2em;
+        }
+
+        form {
+            padding: .3em;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+        }
+
+        #qrcode {
+            flex: 1;
+            display: flex;
+        }
+
+        img {
+            flex: 1;
+            margin: 2em;
+        }
+	</style>
+</head>
+
+<body>
+<div id="app">
+	<form>
+		<strong>Data Sender Mode</strong>
+		- {{user_message}}
+		<input
+				class="cursor-pointer"
+				id="file_input"
+				type="file"
+		/>
+		<span class="field">
+              <label for="chunks">Chunks:</label>
+              <input type="text"
+                     placeholder="1,2,3"
+                     id="chunks"
+              />
+        </span>
+		<span class="field">
+              <label for="interval">interval:</label>
+              <input type="number"
+                     style="width:3em"
+                     value="50"
+                     id="interval"
+              />
+                ms
+        </span>
+		<span class="field">
+              <label for="recovery">recovery:</label>
+              <select
+		              id="recovery"
+              >
+                  <!-- in parentheses: Recovery Capacity % (approx.) -->
+                  <option value="L">Low (7%)</option>
+                  <option value="M">Medium (15%)</option>
+                  <option value="Q">Quartile (25%)</option>
+                  <option value="H">High (30%)</option>
+              </select>
+        </span>
+		<button
+				v-if="!is_transferring"
+				v-on:click="start_transfer"
+				class="mb-6 p-1 border-2 border-gray-500"
+		>
+			Start Transfer
+		</button>
+		<button
+				v-else
+				v-on:click="stop_transfer"
+				class="mb-6 p-1 border-2 border-gray-500"
+		>
+			Stop Transfer
+		</button>
+	</form>
+	<div id="qrcode"></div>
+</div>
+<script src="js/vue.global.js"></script>
+<script src="js/qrcode.min.js"></script>
+<script src="js/pako.min.js"></script>
+<script>
+    const {createApp, ref, onMounted} = Vue;
+
+    createApp({
+        setup() {
+            const user_message = ref("Choose file to get started");
+            const is_transferring = ref(false);
+            const chunk_size = 250;
+            let qrcode_object = "";
+
+            const encode_data = (index, input_bytes) => {
+                let encoded_string = String.fromCharCode.apply(null, input_bytes);
+                let utf8Encoder = new TextEncoder();
+                let utf8_bytes = utf8Encoder.encode(encoded_string);
+                let encoded_data = btoa(
+                    String.fromCharCode.apply(null, utf8_bytes)
+                );
+                return index + "," + encoded_data;
+            };
+
+            const stop_transfer = () => {
+                is_transferring.value = false;
+            };
+
+            const start_transfer = async () => {
+                let file_input = document.getElementById("file_input");
+                let file = file_input.files[0];
+                if (!file) {
+                    user_message.value = "Please choose a file to transfer";
+                    return;
+                }
+                is_transferring.value = true;
+                let chunks_string = document.getElementById("chunks").value.trim();
+                let interval = Number.parseInt(document.getElementById("interval").value.trim(), 10);
+                const correctLevel = QRCode.CorrectLevel[document.getElementById("recovery").value] || QRCode.CorrectLevel.M
+                let data_array = pako.gzip(await file.arrayBuffer(), {level: 9});
+                let total_chunks = Math.ceil(data_array.length / chunk_size);
+
+                let chunks = chunks_string ? chunks_string.split(",").map(Number) : null;
+                let file_metadata = {name: file.name, chunks: total_chunks};
+                document.getElementById("qrcode").innerHTML = "";
+                let lowest_size = Math.min(window.innerWidth, window.innerHeight) / 1.5;
+                qrcode_object = new QRCode("qrcode", {
+                    text: "Choose file to get started",
+                    width: lowest_size,
+                    height: lowest_size,
+                    typeNumber: 40,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: correctLevel,
+                });
+                qrcode_object.clear();
+                qrcode_object.makeCode(JSON.stringify(file_metadata));
+
+                user_message.value = "Starting data transfer in few seconds ...";
+                await new Promise((r) => setTimeout(r, 1000));
+                for (let i = 0; i < total_chunks; i++) {
+                    user_message.value = `Transfering Chunk ${
+                        i + 1
+                    }/${total_chunks} ...`;
+                    if (chunks && !chunks.includes(i + 1)) {
+                        continue;
+                    }
+
+                    let start = i * chunk_size;
+                    let chunk = data_array.subarray(start, start + chunk_size);
+                    let encoded_data = encode_data(i, chunk);
+                    qrcode_object.clear();
+                    qrcode_object.makeCode(encoded_data);
+                    await new Promise((r) => setTimeout(r, interval));
+                    if (!is_transferring.value) {
+                        break;
+                    }
+                }
+                stop_transfer();
+                user_message.value = "Choose file to get started";
+                qrcode_object.clear();
+                qrcode_object.makeCode("Choose file to get started");
+            };
+
+            onMounted(() => {
+                console.log("Application Initialized ...");
+            });
+
+            return {
+                user_message,
+                start_transfer,
+                stop_transfer,
+                is_transferring,
+            };
+        },
+    }).mount("#app");
+</script>
+</body>
+</html>
