@@ -10,12 +10,17 @@
         .chunk {
             border-left: 4px solid silver;
         }
+
         .chunk:hover {
             opacity: 0.5;
         }
 
-        .chunk.ok {
+        .chunk.done {
             border-left: 2px solid green;
+        }
+
+        .inactive {
+            display: none;
         }
 	</style>
 </head>
@@ -33,11 +38,11 @@
 		</div>
 		<div class="text-sm mb-4">
 			<ul style="display: flex; flex-wrap: wrap; padding: 0 20px">
-				<li v-for="index in file_metadata.chunks || 5" :key="index">
-              <span
-		              :class="decoded_chunks[index-1] != undefined ? 'chunk done' : 'chunk todo'"
-		              :title="index"></span
-              >
+				<li v-for="index in file_metadata.chunks || 0" :key="index">
+	              <span
+			              :class="decoded_chunks[index-1] != undefined ? 'chunk done' : 'chunk todo'"
+			              :title="index"></span
+	              >
 				</li>
 			</ul>
 		</div>
@@ -62,14 +67,21 @@
 		>
 			Copy Missed Chunks
 		</button>
+		<details id="resume_details" class="inactive">
+			<summary>Resume</summary>
+			<div id="resume_qrcode"></div>
+		</details>
+
 		<video id="videoElement" muted autoplay playsinline></video>
 	</div>
 </div>
 <script src="js/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@latest/dist/index.js"></script>
 <script src="js/pako.min.js"></script>
+<script src="js/qrcode.min.js"></script>
 <script>
     const {createApp, ref, reactive, onMounted, computed} = Vue;
+    const qrcodeSize = Math.min(window.innerWidth, window.innerHeight) / 1.5;
 
     createApp({
         setup() {
@@ -113,10 +125,23 @@
                 }
                 let missed_chunks = [];
                 for (let i = 0; i < file_metadata.chunks; i++) {
-                    if (decoded_chunks.value[i] == undefined) {
+                    if (decoded_chunks.value[i] === undefined) {
                         missed_chunks.push(i + 1);
                     }
                 }
+                console.log("missed_chunks:", missed_chunks);
+                const qrcode_object = new QRCode("resume_qrcode", {
+                    text: "resume:" + missed_chunks.join(",").substring(0, 2028).replace(/,\d*$/, ''),
+                    width: qrcodeSize,
+                    height: qrcodeSize,
+                    typeNumber: 40,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M,
+                });
+                var details = document.getElementById("resume_details");
+                details.classList.remove("inactive");
+                details.open = true;
                 await navigator.clipboard.writeText(missed_chunks.join(","));
                 user_message.value = "Copy Missed Chunks to Clipboard Successful";
             };
@@ -147,7 +172,6 @@
                         if (!symbols || !symbols.length) {
                             continue;
                         }
-                        console.log("symbols:",symbols);
                         let decoded_data = symbols[0].decode();
                         if (decoded_data.includes("chunks")) {
                             new_file_metadata = JSON.parse(decoded_data);
