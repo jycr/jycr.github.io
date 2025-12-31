@@ -7,12 +7,16 @@
 	<meta http-equiv="X-UA-Compatible" content="ie=edge"/>
 	<script src="https://cdn.tailwindcss.com"></script>
 	<style>
-		.chunk{
-			border-left:2px solid silver;
-		}
-		.chunk.ok{
-			border-left:2px solid green;
-		}
+        .chunk {
+            border-left: 4px solid silver;
+        }
+        .chunk:hover {
+            opacity: 0.5;
+        }
+
+        .chunk.ok {
+            border-left: 2px solid green;
+        }
 	</style>
 </head>
 
@@ -32,7 +36,7 @@
 				<li v-for="index in file_metadata.chunks || 5" :key="index">
               <span
 		              :class="decoded_chunks[index-1] != undefined ? 'chunk done' : 'chunk todo'"
-              >{{index}}</span
+		              :title="index"></span
               >
 				</li>
 			</ul>
