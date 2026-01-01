@@ -3,8 +3,9 @@
   import jsQR from "jsqr";
   import QRCode from "qrcode";
 
-  let videoElement = $state();
-  let canvas = $state();
+  // DOM references should NOT use $state() - use regular let for bind:this
+  let videoElement;
+  let canvas;
   let canvasContext;
   let isScanning = $state(false);
   let receivedChunks = $state(new Map());
@@ -33,18 +34,8 @@
   async function startScanning() {
     isScanning = true;
 
-    // Wait for the next tick to ensure videoElement and canvas are mounted in the DOM
+    // Wait for DOM to update
     await tick();
-    // In Svelte 5, bind:this with $state() might need an extra tick
-    await tick();
-
-    // Wait for DOM elements to be fully bound with retry logic
-    let retries = 0;
-    const maxRetries = 10;
-    while (!videoElement && retries < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      retries++;
-    }
 
     if (!videoElement) {
       alert("Video element not ready. Please try again.");
@@ -109,7 +100,7 @@
         inversionAttempts: "dontInvert",
       });
 
-      if (code) {
+      if (code?.data?.length > 0) {
         processQRCode(code.data);
       }
     }
