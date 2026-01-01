@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/qrcode/",
+  base: "/qrcode/dist/",
   plugins: [svelte()],
   resolve: {
     conditions: ["browser", "zbar-inlined"],
