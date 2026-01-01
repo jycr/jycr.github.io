@@ -1,7 +1,8 @@
 import './app.css'
+import { mount } from 'svelte'
 import Receiver from './lib/Receiver.svelte'
 
-const app = new Receiver({
+const app = mount(Receiver, {
   target: document.getElementById('app'),
 })
 

@@ -1,27 +1,26 @@
 <script>
-  import { onMount } from 'svelte';
   import QRCode from 'qrcode';
   import jsQR from 'jsqr';
 
-  let selectedFile = null;
-  let fileChunks = [];
-  let fileHash = '';
-  let isTransmitting = false;
-  let currentChunkIndex = 0;
-  let qrCodeUrl = '';
+  let selectedFile = $state(null);
+  let fileChunks = $state([]);
+  let fileHash = $state('');
+  let isTransmitting = $state(false);
+  let currentChunkIndex = $state(0);
+  let qrCodeUrl = $state('');
   let canvas;
   let videoElement;
   let canvasContext;
-  let scannerActive = false;
-  let missingChunks = [];
-  let transmissionMode = 'all'; // 'all' ou 'recovery'
+  let scannerActive = $state(false);
+  let missingChunks = $state([]);
+  let transmissionMode = $state('all'); // 'all' or 'recovery'
 
-  // Paramètres configurables
-  let chunkSize = 2000; // Taille maximale des données par QR code (en octets)
-  let transmissionSpeed = 500; // Millisecondes entre chaque QR code
-  let errorCorrectionLevel = 'M'; // L, M, Q, H
-  let totalChunks = 0;
-  let transmittedChunks = new Set();
+  // Configurable parameters
+  let chunkSize = $state(2000); // Maximum data size per QR code (in bytes)
+  let transmissionSpeed = $state(500); // Milliseconds between each QR code
+  let errorCorrectionLevel = $state('M'); // L, M, Q, H
+  let totalChunks = $state(0);
+  let transmittedChunks = $state(new Set());
 
   // Fonction pour calculer le hash SHA-256 d'un fichier
   async function calculateSHA256(file) {
@@ -204,8 +203,11 @@
     }
   }
 
-  onMount(() => {
-    canvasContext = canvas.getContext('2d');
+  // Initialize canvas context when canvas is mounted
+  $effect(() => {
+    if (canvas) {
+      canvasContext = canvas.getContext('2d');
+    }
   });
 </script>
 

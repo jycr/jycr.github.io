@@ -1,33 +1,38 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
   import jsQR from 'jsqr';
   import QRCode from 'qrcode';
 
   let videoElement;
   let canvas;
   let canvasContext;
-  let isScanning = false;
-  let receivedChunks = new Map();
-  let fileInfo = null;
-  let recoveryQRCode = '';
-  let downloadUrl = '';
+  let isScanning = $state(false);
+  let receivedChunks = $state(new Map());
+  let fileInfo = $state(null);
+  let recoveryQRCode = $state('');
+  let downloadUrl = $state('');
 
-  // Statistiques
-  let totalChunks = 0;
-  let receivedCount = 0;
-  let missingChunks = [];
-  let lastChunkTime = Date.now();
-  let scanningStats = {
+  // Statistics
+  let totalChunks = $state(0);
+  let receivedCount = $state(0);
+  let missingChunks = $state([]);
+  let lastChunkTime = $state(Date.now());
+  let scanningStats = $state({
     totalScanned: 0,
     duplicates: 0,
     errors: 0
-  };
+  });
 
-  $: progress = totalChunks > 0 ? (receivedCount / totalChunks) * 100 : 0;
-  $: isComplete = totalChunks > 0 && receivedCount === totalChunks;
+  // Reactive derived values for Svelte 5
+  let progress = $derived(totalChunks > 0 ? (receivedCount / totalChunks) * 100 : 0);
+  let isComplete = $derived(totalChunks > 0 && receivedCount === totalChunks);
 
-  // Fonction pour démarrer le scan
+  // Function to start scanning
   async function startScanning() {
+    if (!videoElement) {
+      alert('Video element not ready. Please try again.');
+      return;
+    }
+
     isScanning = true;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -41,8 +46,8 @@
       videoElement.play();
       requestAnimationFrame(scanQRCode);
     } catch (error) {
-      console.error('Erreur d\'accès à la caméra:', error);
-      alert('Impossible d\'accéder à la caméra. Veuillez autoriser l\'accès.');
+      console.error('Camera access error:', error);
+      alert('Unable to access camera. Please allow camera access.');
       isScanning = false;
     }
   }
@@ -256,15 +261,19 @@
     }
   }
 
-  onMount(() => {
-    canvasContext = canvas.getContext('2d', { willReadFrequently: true });
-  });
-
-  onDestroy(() => {
-    stopScanning();
-    if (downloadUrl) {
-      URL.revokeObjectURL(downloadUrl);
+  // Initialize canvas context when canvas is mounted
+  $effect(() => {
+    if (canvas) {
+      canvasContext = canvas.getContext('2d', { willReadFrequently: true });
     }
+
+    // Cleanup on component destroy
+    return () => {
+      stopScanning();
+      if (downloadUrl) {
+        URL.revokeObjectURL(downloadUrl);
+      }
+    };
   });
 </script>
 
