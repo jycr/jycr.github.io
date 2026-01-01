@@ -44,7 +44,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "jsqr": "^1.4.0",
+    "@undecaf/zbar-wasm": "^0.11.0",
     "qrcode": "^1.5.4"
   }
 }

@@ -1,6 +1,6 @@
 <script>
   import { tick } from "svelte";
-  import jsQR from "jsqr";
+  import { scanImageData } from "@undecaf/zbar-wasm";
   import QRCode from "qrcode";
 
   // DOM references should NOT use $state() - use regular let for bind:this
@@ -82,7 +82,7 @@
   }
 
   // Main QR code scanning function
-  function scanQRCode() {
+  async function scanQRCode() {
     if (!isScanning || !canvasContext) return;
 
     if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
@@ -96,12 +96,21 @@
         canvas.width,
         canvas.height
       );
-      const code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: "dontInvert",
-      });
 
-      if (code?.data?.length > 0) {
-        processQRCode(code.data);
+      try {
+        const symbols = await scanImageData(imageData);
+
+        // Traiter tous les QR codes détectés
+        if (symbols && symbols.length > 0) {
+          for (const symbol of symbols) {
+            const data = symbol.decode();
+            if (data && data.length > 0) {
+              processQRCode(data);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Erreur de scan zbar:", error);
       }
     }
 
@@ -583,24 +592,6 @@
 
   .progress-section {
     margin: 1.5rem 0;
-  }
-
-  .progress-bar {
-    width: 100%;
-    height: 30px;
-    background: #f0f0f0;
-    border-radius: 15px;
-    overflow: hidden;
-    margin-bottom: 0.5rem;
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4caf50, #8bc34a);
-    transition: width 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .progress-text {

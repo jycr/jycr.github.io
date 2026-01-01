@@ -1,7 +1,7 @@
 <script>
   import { tick } from "svelte";
   import QRCode from "qrcode";
-  import jsQR from "jsqr";
+  import { scanImageData } from "@undecaf/zbar-wasm";
 
   // QR Code capacity limits (in bytes) for binary data based on error correction level
   // These are approximate values for QR code version 40 (largest)
@@ -18,6 +18,7 @@
   let isTransmitting = $state(false);
   let currentChunkIndex = $state(0);
   let qrCodeUrl = $state("");
+  let qrCodeUrls = $state([]); // Tableau pour plusieurs QR codes
   let canvas = $state();
   let videoElement = $state();
   let canvasContext;
@@ -29,6 +30,7 @@
   let chunkSize = $state(1400); // Maximum data size per QR code (in bytes) - reduced default
   let transmissionSpeed = $state(100); // Milliseconds between each QR code
   let errorCorrectionLevel = $state("M"); // L, M, Q, H
+  let numberOfQRCodes = $state(4); // Nombre de QR codes à afficher simultanément
   let totalChunks = $state(0);
   let transmittedChunks = $state(new Set());
   let infoQRCode = $state(""); // QR code initial avec les métadonnées
@@ -167,30 +169,47 @@
       return;
     }
 
-    const chunk = chunksToTransmit[currentChunkIndex];
+    // Générer plusieurs QR codes simultanément
+    qrCodeUrls = [];
+    const qrPromises = [];
+
+    for (
+      let i = 0;
+      i < numberOfQRCodes && currentChunkIndex + i < chunksToTransmit.length;
+      i++
+    ) {
+      const chunk = chunksToTransmit[currentChunkIndex + i];
+
+      try {
+        // Generate QR code with chunk data
+        const qrData = JSON.stringify(chunk);
+        const qrPromise = QRCode.toDataURL(qrData, {
+          errorCorrectionLevel: errorCorrectionLevel,
+          margin: 1,
+          width: 1000,
+          color: {
+            dark: "#000000",
+            light: "#FFFFFF",
+          },
+        });
+
+        qrPromises.push(qrPromise);
+        transmittedChunks.add(chunk.chunkIndex);
+      } catch (error) {
+        console.error("Error generating QR code:", error);
+      }
+    }
 
     try {
-      // Generate QR code with chunk data
-      const qrData = JSON.stringify(chunk);
-      qrCodeUrl = await QRCode.toDataURL(qrData, {
-        errorCorrectionLevel: errorCorrectionLevel,
-        margin: 1,
-        width: 1000,
-        color: {
-          dark: "#000000",
-          light: "#FFFFFF",
-        },
-      });
+      qrCodeUrls = await Promise.all(qrPromises);
+      currentChunkIndex += numberOfQRCodes;
 
-      transmittedChunks.add(chunk.chunkIndex);
-      currentChunkIndex++;
-
-      // Schedule next chunk
+      // Schedule next batch of chunks
       setTimeout(transmitNextChunk, transmissionSpeed);
     } catch (error) {
-      console.error("Error generating QR code:", error);
+      console.error("Error generating QR codes:", error);
       alert(
-        `Error generating QR code: ${error.message}\n\nTry reducing the chunk size or changing the error correction level.`
+        `Error generating QR codes: ${error.message}\n\nTry reducing the chunk size or changing the error correction level.`
       );
       isTransmitting = false;
     }
@@ -238,7 +257,7 @@
   }
 
   // Fonction pour scanner le QR de récupération
-  function scanRecoveryQR() {
+  async function scanRecoveryQR() {
     if (!scannerActive) return;
 
     if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
@@ -249,26 +268,36 @@
         canvas.width,
         canvas.height
       );
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
 
-      if (code) {
-        try {
-          const recoveryData = JSON.parse(code.data);
-          if (
-            recoveryData.type === "recovery" &&
-            recoveryData.fileHash === fileHash
-          ) {
-            missingChunks = recoveryData.missingChunks;
-            stopRecoveryScanner();
-            transmissionMode = "recovery";
-            alert(
-              `QR de récupération scanné ! ${missingChunks.length} chunks manquants détectés.`
-            );
-            return;
+      try {
+        const symbols = await scanImageData(imageData);
+
+        if (symbols && symbols.length > 0) {
+          for (const symbol of symbols) {
+            const data = symbol.decode();
+            if (data) {
+              try {
+                const recoveryData = JSON.parse(data);
+                if (
+                  recoveryData.type === "recovery" &&
+                  recoveryData.fileHash === fileHash
+                ) {
+                  missingChunks = recoveryData.missingChunks;
+                  stopRecoveryScanner();
+                  transmissionMode = "recovery";
+                  alert(
+                    `QR de récupération scanné ! ${missingChunks.length} chunks manquants détectés.`
+                  );
+                  return;
+                }
+              } catch (e) {
+                // Pas un QR de récupération valide
+              }
+            }
           }
-        } catch (e) {
-          // Pas un QR de récupération valide
         }
+      } catch (error) {
+        console.error("Erreur de scan zbar:", error);
       }
     }
 
@@ -293,6 +322,7 @@
     fileHash = "";
     currentChunkIndex = 0;
     qrCodeUrl = "";
+    qrCodeUrls = [];
     infoQRCode = "";
     missingChunks = [];
     transmissionMode = "all";
@@ -349,6 +379,20 @@
       <summary>Transmission Parameters (advanced options)</summary>
       <div class="settings">
         <p class="field">
+          <label for="numberOfQRCodes">Nombre de QR codes simultanés:</label>
+          <input
+            id="numberOfQRCodes"
+            type="number"
+            bind:value={numberOfQRCodes}
+            min="1"
+            max="9"
+            step="1"
+          />
+          <span class="tips">
+            Afficher plusieurs QR codes à la fois pour accélérer le transfert
+          </span>
+        </p>
+        <p class="field">
           <label for="transmissionSpeed">Transmission speed (ms):</label>
           <input
             id="transmissionSpeed"
@@ -396,15 +440,14 @@
   </header>
 
   <section class="main-content">
-    {#if qrCodeUrl}
-      <button
-        class="qr-display"
-        type="button"
-        bind:this={stopTransmissionButton}
-        onclick={stopTransmission}
-      >
-        <img src={qrCodeUrl} alt="QR Code" />
-      </button>
+    {#if qrCodeUrls.length > 0}
+      <div class="qr-grid">
+        {#each qrCodeUrls as qrUrl, index}
+          <button class="qr-display" type="button" onclick={stopTransmission}>
+            <img src={qrUrl} alt="QR Code {index + 1}" />
+          </button>
+        {/each}
+      </div>
     {:else if infoQRCode}
       <button
         class="qr-display"
@@ -419,11 +462,12 @@
     <div class="controls">
       <p class="status">
         {#if isTransmitting}
-          Transmission in progress... Chunk {(currentChunkIndex %
-            (transmissionMode === "recovery"
-              ? missingChunks.length
-              : totalChunks)) +
-            1}
+          Transmission in progress... Chunks {currentChunkIndex -
+            numberOfQRCodes +
+            1} - {Math.min(
+            currentChunkIndex,
+            transmissionMode === "recovery" ? missingChunks.length : totalChunks
+          )}
           /
           {transmissionMode === "recovery" ? missingChunks.length : totalChunks}
           {#if transmissionMode === "recovery"}
@@ -538,6 +582,12 @@
     margin: 0.5rem 0;
   }
 
+  .tips {
+    font-size: 0.875rem;
+    color: #666;
+    font-style: italic;
+  }
+
   .controls {
     display: flex;
     flex-direction: column;
@@ -602,6 +652,26 @@
     }
   }
 
+  .qr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    width: 100%;
+    max-width: 1200px;
+
+    .qr-display {
+      aspect-ratio: 1;
+
+      img {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+  }
+
   /* Mode portrait : largeur à 100vw */
   @media (orientation: portrait) {
     .qr-display img {
@@ -609,6 +679,10 @@
       max-width: 100vw;
       height: auto;
       max-height: none;
+    }
+
+    .qr-grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 
@@ -619,6 +693,10 @@
       max-height: 100vh;
       width: auto;
       max-width: none;
+    }
+
+    .qr-grid {
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 
