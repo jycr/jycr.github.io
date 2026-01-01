@@ -2,43 +2,43 @@
 </script>
 
 <main>
-  <h1>📱 Transfert de fichiers par QR Code</h1>
+  <h1>📱 QR Code File Transfer</h1>
 
   <div class="intro">
     <p>
-      Cette application permet de transférer des fichiers entre deux appareils en utilisant des QR codes.
+      This application allows you to transfer files between two devices using QR codes.
     </p>
   </div>
 
   <div class="cards">
     <div class="card">
-      <h2>📤 Émetteur</h2>
-      <p>Envoyez un fichier en générant une série de QR codes</p>
-      <a href="/sender.html" class="button primary">Ouvrir l'émetteur</a>
+      <h2>📤 Sender</h2>
+      <p>Send a file by generating a series of QR codes</p>
+      <a href="/sender.html" class="button primary">Open Sender</a>
     </div>
 
     <div class="card">
-      <h2>📥 Récepteur</h2>
-      <p>Recevez un fichier en scannant les QR codes</p>
-      <a href="/receiver.html" class="button secondary">Ouvrir le récepteur</a>
+      <h2>📥 Receiver</h2>
+      <p>Receive a file by scanning QR codes</p>
+      <a href="/receiver.html" class="button secondary">Open Receiver</a>
     </div>
   </div>
 
   <div style="text-align: center; margin: 2rem 0;">
     <a href="/guide.html" class="button" style="background: #764ba2; color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 6px; display: inline-block;">
-      📖 Guide d'utilisation complet
+      📖 Complete Usage Guide
     </a>
   </div>
 
   <div class="info">
-    <h3>Comment ça marche ?</h3>
+    <h3>How does it work?</h3>
     <ol>
-      <li>Sur l'appareil émetteur, ouvrez la page <strong>Émetteur</strong> et sélectionnez un fichier</li>
-      <li>Sur l'appareil récepteur, ouvrez la page <strong>Récepteur</strong> et démarrez le scan</li>
-      <li>Placez la caméra du récepteur face aux QR codes affichés par l'émetteur</li>
-      <li>Les chunks seront progressivement reçus et le fichier sera reconstruit</li>
-      <li>En cas de chunks manquants, générez un QR de récupération depuis le récepteur</li>
-      <li>Scannez ce QR sur l'émetteur pour retransmettre uniquement les chunks manquants</li>
+      <li>On the sender device, open the <strong>Sender</strong> page and select a file</li>
+      <li>On the receiver device, open the <strong>Receiver</strong> page and start scanning</li>
+      <li>Place the receiver's camera facing the QR codes displayed by the sender</li>
+      <li>Chunks will be progressively received and the file will be reconstructed</li>
+      <li>If chunks are missing, generate a recovery QR from the receiver</li>
+      <li>Scan this QR on the sender to retransmit only the missing chunks</li>
     </ol>
   </div>
 </main>

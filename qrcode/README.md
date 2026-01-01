@@ -1,6 +1,6 @@
 # 📱 QR Code File Transfer
 
-Application Svelte permettant de transférer des fichiers entre deux appareils en utilisant uniquement des QR codes, sans connexion réseau.
+A Svelte application for transferring files between two devices using only QR codes, without network connection.
 
 [![Svelte](https://img.shields.io/badge/Svelte-5.43-ff3e00?logo=svelte)](https://svelte.dev/)
 [![Vite](https://img.shields.io/badge/Vite-7.2-646cff?logo=vite)](https://vitejs.dev/)
@@ -8,105 +8,105 @@ Application Svelte permettant de transférer des fichiers entre deux appareils e
 [![Coverage](https://img.shields.io/badge/Coverage-100%25-success)](#-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 🎯 Fonctionnalités
+## 🎯 Features
 
-### 📤 Émetteur (`sender.html`)
-- Sélection et analyse de fichier (hash SHA-256)
-- Découpage en chunks configurables (500-2900 octets)
-- Génération de QR codes optimisés
-- Paramètres ajustables (vitesse, taille, correction d'erreur)
-- Scanner de QR de récupération pour retransmettre uniquement les chunks manquants
+### 📤 Sender (`sender.html`)
+- File selection and analysis (SHA-256 hash)
+- Configurable chunk splitting (500-2900 bytes)
+- Optimized QR code generation
+- Adjustable parameters (speed, size, error correction)
+- Recovery QR scanner to retransmit only missing chunks
 
-### 📥 Récepteur (`receiver.html`)
-- Scan en temps réel via caméra
-- Réception et stockage des chunks avec détection des doublons
-- Barre de progression et statistiques détaillées
-- Vérification d'intégrité (SHA-256)
-- Génération de QR de récupération
-- Téléchargement du fichier reconstitué
+### 📥 Receiver (`receiver.html`)
+- Real-time scanning via camera
+- Chunk reception and storage with duplicate detection
+- Progress bar and detailed statistics
+- Integrity verification (SHA-256)
+- Recovery QR code generation
+- Download of reconstructed file
 
-### 🔄 Mécanisme de reprise
-Le récepteur génère un QR code listant les chunks manquants. L'émetteur scanne ce QR et retransmet uniquement les données nécessaires. Le processus est répétable jusqu'à réception complète.
+### 🔄 Recovery Mechanism
+The receiver generates a QR code listing missing chunks. The sender scans this QR and retransmits only the necessary data. The process is repeatable until complete reception.
 
-## 🚀 Démarrage rapide
+## 🚀 Quick Start
 
 ```bash
 # Installation
 npm install
 
-# Développement
+# Development
 npm run dev
 
 # Production
 npm run build
-npm run preview              # Prévisualiser le build avec Vite
-npm run serve:dist           # Servir dist/ avec http-server (port 8080)
+npm run preview              # Preview build with Vite
+npm run serve:dist           # Serve dist/ with http-server (port 8080)
 
 # Tests
 npm test
 ```
 
-Ouvrez ensuite dans votre navigateur :
-- **Accueil** : http://localhost:5173/ (dev) ou http://localhost:8080/ (dist)
-- **Émetteur** : http://localhost:5173/sender.html
-- **Récepteur** : http://localhost:5173/receiver.html
+Then open in your browser:
+- **Home** : http://localhost:5173/ (dev) or http://localhost:8080/ (dist)
+- **Sender** : http://localhost:5173/sender.html
+- **Receiver** : http://localhost:5173/receiver.html
 
-## 📖 Utilisation
+## 📖 Usage
 
-### Scénario de base
+### Basic Scenario
 
-1. **Appareil émetteur** : Ouvrir `sender.html`
-   - Choisir un fichier
-   - Ajuster les paramètres (vitesse, taille chunks, correction)
-   - Démarrer la transmission
+1. **Sender device** : Open `sender.html`
+   - Choose a file
+   - Adjust parameters (speed, chunk size, correction)
+   - Start transmission
 
-2. **Appareil récepteur** : Ouvrir `receiver.html`
-   - Démarrer le scan
-   - Autoriser l'accès à la caméra
-   - Placer la caméra face aux QR codes (distance 20-30 cm)
+2. **Receiver device** : Open `receiver.html`
+   - Start scanning
+   - Allow camera access
+   - Place camera facing QR codes (distance 20-30 cm)
 
-3. **Récupération** (si nécessaire) :
-   - Sur le récepteur : Générer QR de récupération
-   - Sur l'émetteur : Scanner ce QR
-   - L'émetteur retransmet automatiquement les chunks manquants
+3. **Recovery** (if needed) :
+   - On receiver: Generate recovery QR
+   - On sender: Scan this QR
+   - Sender automatically retransmits missing chunks
 
-### Options de serveur pour tests
+### Server Options for Testing
 
-**Développement (Hot reload)**
+**Development (Hot reload)**
 ```bash
 npm run dev
-# Accès : http://localhost:5173/
+# Access: http://localhost:5173/
 ```
 
-**Build de production**
+**Production Build**
 ```bash
 npm run build
-npm run preview          # Serveur Vite (port 4173)
-# ou
+npm run preview          # Vite server (port 4173)
+# or
 npm run serve:dist       # http-server (port 8080)
-# ou
-./scripts.sh             # Menu interactif avec toutes les options
+# or
+./scripts.sh             # Interactive menu with all options
 ```
 
-💡 **Astuce** : Utilisez `./scripts.sh` pour un menu interactif avec toutes les commandes disponibles, ou `serve:dist` pour tester le build de production sur différents appareils (accessible via IP locale).
+💡 **Tip** : Use `./scripts.sh` for an interactive menu with all available commands, or `serve:dist` to test production build on different devices (accessible via local IP).
 
-## ⚙️ Paramètres recommandés
+## ⚙️ Recommended Parameters
 
-| Taille fichier | Taille chunk | Vitesse | Correction |
-|----------------|--------------|---------|------------|
-| < 1 Mo | 2000 octets | 500 ms | M (15%) |
-| 1-10 Mo | 2500 octets | 300 ms | M ou Q |
-| > 10 Mo | 2900 octets | 200 ms | L (7%) |
+| File Size | Chunk Size | Speed | Correction |
+|-----------|------------|-------|------------|
+| < 1 MB | 2000 bytes | 500 ms | M (15%) |
+| 1-10 MB | 2500 bytes | 300 ms | M or Q |
+| > 10 MB | 2900 bytes | 200 ms | L (7%) |
 
 ## 🛠️ Technologies
 
 - **Framework** : Svelte 5 + Vite 7
-- **Bibliothèques** : qrcode, jsQR
-- **APIs** : Web Crypto (SHA-256), MediaDevices (caméra), Canvas, File, Blob
+- **Libraries** : qrcode, jsQR
+- **APIs** : Web Crypto (SHA-256), MediaDevices (camera), Canvas, File, Blob
 
-## 📊 Format des données
+## 📊 Data Format
 
-### QR Code de chunk
+### Chunk QR Code
 ```json
 {
   "fileHash": "sha256_hash",
@@ -117,7 +117,7 @@ npm run serve:dist       # http-server (port 8080)
 }
 ```
 
-### QR Code de récupération
+### Recovery QR Code
 ```json
 {
   "type": "recovery",
@@ -128,37 +128,37 @@ npm run serve:dist       # http-server (port 8080)
 
 ## 🧪 Tests
 
-L'application inclut une suite de tests complète avec **22 tests** et **100% de couverture** sur les fonctions utilitaires.
+The application includes a complete test suite with **22 tests** and **100% coverage** on utility functions.
 
-### Lancer les tests
+### Run Tests
 
 ```bash
-# Tous les tests
+# All tests
 npm test
 
-# Tests en mode watch (relance automatique)
+# Tests in watch mode (auto-rerun)
 npm run test:watch
 
-# Tests avec rapport de couverture
+# Tests with coverage report
 npm run test:coverage
 ```
 
-### Tests disponibles
+### Available Tests
 
-**Tests unitaires (18 tests)** - `src/lib/__tests__/fileUtils.test.js`
-- Découpage de fichiers en chunks
-- Assemblage de chunks en fichier
-- Recherche de chunks manquants
-- Validation de chunks et données de récupération
-- Gestion des cas limites et erreurs
+**Unit tests (18 tests)** - `src/lib/__tests__/fileUtils.test.js`
+- File splitting into chunks
+- Chunks assembly into file
+- Missing chunks detection
+- Chunk and recovery data validation
+- Edge cases and error handling
 
-**Tests d'intégration (4 tests)** - `src/lib/__tests__/integration.test.js`
-- Scénario de transfert complet réussi
-- Transfert avec chunks manquants et récupération
-- Gestion de fichiers binaires
-- Cycles multiples de récupération
+**Integration tests (4 tests)** - `src/lib/__tests__/integration.test.js`
+- Complete successful transfer scenario
+- Transfer with missing chunks and recovery
+- Binary file handling
+- Multiple recovery cycles
 
-### Résultats
+### Results
 
 ```
 ✓ src/lib/__tests__/integration.test.js (4 tests) 3ms
@@ -169,77 +169,77 @@ Tests       22 passed (22)
 Coverage    100% (fileUtils.js)
 ```
 
-### Infrastructure de test
+### Test Infrastructure
 
-- **Vitest 4.0.16** : Framework de test moderne et rapide
-- **@testing-library/svelte** : Utilitaires de test pour Svelte
-- **happy-dom** : Environnement DOM léger
+- **Vitest 4.0.16** : Modern and fast test framework
+- **@testing-library/svelte** : Testing utilities for Svelte
+- **happy-dom** : Lightweight DOM environment
 - **Mocks** : Web Crypto API, MediaDevices API, URL API
 
-### Ajouter de nouveaux tests
+### Adding New Tests
 
-Les tests sont dans `src/lib/__tests__/`. Exemple :
+Tests are in `src/lib/__tests__/`. Example:
 
 ```javascript
 import { describe, it, expect } from 'vitest';
-import { maFonction } from '../monModule';
+import { myFunction } from '../myModule';
 
-describe('Mon module', () => {
-  it('devrait fonctionner correctement', () => {
-    const resultat = maFonction('test');
-    expect(resultat).toBe('attendu');
+describe('My module', () => {
+  it('should work correctly', () => {
+    const result = myFunction('test');
+    expect(result).toBe('expected');
   });
 });
 ```
 
-## 🏗️ Structure du projet
+## 🏗️ Project Structure
 
 ```
 src/
 ├── lib/
-│   ├── Sender.svelte      # Composant émetteur
-│   ├── Receiver.svelte    # Composant récepteur
-│   └── __tests__/         # Tests unitaires
-├── App.svelte             # Page d'accueil
-├── sender.js              # Entry point émetteur
-└── receiver.js            # Entry point récepteur
+│   ├── Sender.svelte      # Sender component
+│   ├── Receiver.svelte    # Receiver component
+│   └── __tests__/         # Unit tests
+├── App.svelte             # Home page
+├── sender.js              # Sender entry point
+└── receiver.js            # Receiver entry point
 ```
 
-## 🔒 Sécurité
+## 🔒 Security
 
-- ✅ Traitement 100% local (aucun serveur)
-- ✅ Vérification d'intégrité SHA-256
-- ✅ Pas de stockage permanent
-- ✅ Pas de compression (fichiers déjà compressés)
+- ✅ 100% local processing (no server)
+- ✅ SHA-256 integrity verification
+- ✅ No permanent storage
+- ✅ No compression (for already compressed files)
 
-## 🌐 Compatibilité
+## 🌐 Compatibility
 
-| Navigateur | Support |
-|------------|---------|
-| Chrome 90+ | ✅ Recommandé |
-| Safari 14+ | ✅ Testé |
-| Firefox 88+ | ✅ Testé |
-| Edge 90+ | ⚠️ Non testé |
+| Browser | Support |
+|---------|---------|
+| Chrome 90+ | ✅ Recommended |
+| Safari 14+ | ✅ Tested |
+| Firefox 88+ | ✅ Tested |
+| Edge 90+ | ⚠️ Not tested |
 
-## 🐛 Dépannage
+## 🐛 Troubleshooting
 
-**Caméra ne démarre pas** : Autoriser l'accès, utiliser HTTPS/localhost  
-**QR codes illisibles** : Améliorer éclairage, ajuster distance (20-30 cm)  
-**Chunks manquants** : Ralentir vitesse, utiliser mode récupération
+**Camera won't start** : Allow access, use HTTPS/localhost  
+**QR codes unreadable** : Improve lighting, adjust distance (20-30 cm)  
+**Missing chunks** : Slow down speed, use recovery mode
 
-## 📈 Estimation temps de transfert
+## 📈 Transfer Time Estimates
 
-| Taille | Temps (défaut: 2000 octets, 500 ms) |
-|--------|--------------------------------------|
-| 100 Ko | ~25 secondes |
-| 1 Mo | ~4 minutes |
-| 10 Mo | ~42 minutes |
+| Size | Time (default: 2000 bytes, 500 ms) |
+|------|-------------------------------------|
+| 100 KB | ~25 seconds |
+| 1 MB | ~4 minutes |
+| 10 MB | ~42 minutes |
 
-## 🤝 Contribution
+## 🤝 Contributing
 
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
+Contributions are welcome! Feel free to open an issue or pull request.
 
-## 📄 Licence
+## 📄 License
 
 MIT
 

@@ -202,7 +202,7 @@
     }
 
     if (missingChunks.length === 0) {
-      alert('Tous les chunks ont été reçus !');
+      alert('All chunks have been received!');
       return;
     }
 
@@ -272,15 +272,15 @@
   <h1>📥 QR Code Receiver</h1>
 
   <div class="card">
-    <h2>1. Scanner les QR codes</h2>
+    <h2>1. Scan QR codes</h2>
     <div class="controls">
       {#if !isScanning}
         <button on:click={startScanning} class="primary">
-          📷 Démarrer le scan
+          📷 Start Scanning
         </button>
       {:else}
         <button on:click={stopScanning} class="danger">
-          ⏹ Arrêter le scan
+          ⏹ Stop Scanning
         </button>
       {/if}
       <button on:click={reset} class="secondary">
@@ -301,7 +301,7 @@
 
   {#if fileInfo}
     <div class="card">
-      <h2>2. Progression de la réception</h2>
+      <h2>2. Reception Progress</h2>
       <div class="file-info">
         <p><strong>Fichier:</strong> {fileInfo.name}</p>
         <p><strong>Hash:</strong> <code>{fileInfo.hash.substring(0, 16)}...</code></p>
@@ -312,28 +312,28 @@
           <div class="progress-fill" style="width: {progress}%"></div>
         </div>
         <p class="progress-text">
-          {receivedCount} / {totalChunks} chunks reçus ({progress.toFixed(1)}%)
+          {receivedCount} / {totalChunks} chunks received ({progress.toFixed(1)}%)
         </p>
       </div>
 
       <div class="stats">
         <div class="stat-item">
-          <span class="stat-label">Total scanné:</span>
+          <span class="stat-label">Total scanned:</span>
           <span class="stat-value">{scanningStats.totalScanned}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Doublons:</span>
+          <span class="stat-label">Duplicates:</span>
           <span class="stat-value">{scanningStats.duplicates}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Erreurs:</span>
+          <span class="stat-label">Errors:</span>
           <span class="stat-value">{scanningStats.errors}</span>
         </div>
       </div>
 
       {#if isComplete}
         <div class="success-message">
-          ✓ Tous les chunks ont été reçus !
+          ✓ All chunks have been received!
         </div>
       {/if}
     </div>
@@ -341,16 +341,16 @@
 
   {#if fileInfo && !isComplete}
     <div class="card">
-      <h2>3. Récupération des chunks manquants</h2>
-      <p>Si des chunks sont manquants, générez un QR code de récupération à scanner par l'émetteur.</p>
+      <h2>3. Missing chunks recovery</h2>
+      <p>If chunks are missing, generate a recovery QR code to scan with the sender.</p>
       <button on:click={generateRecoveryQR}>
-        🔄 Générer QR de récupération
+        🔄 Generate Recovery QR
       </button>
 
       {#if recoveryQRCode}
         <div class="recovery-section">
           <p class="info">
-            <strong>{missingChunks.length}</strong> chunk(s) manquant(s):
+            <strong>{missingChunks.length}</strong> missing chunk(s):
             {missingChunks.slice(0, 10).join(', ')}
             {#if missingChunks.length > 10}
               ...
@@ -358,7 +358,7 @@
           </p>
           <div class="qr-display">
             <img src={recoveryQRCode} alt="QR Code de récupération" />
-            <p class="qr-caption">Scannez ce QR avec la page sender pour retransmettre les chunks manquants</p>
+            <p class="qr-caption">Scan this QR with the sender page to retransmit missing chunks</p>
           </div>
         </div>
       {/if}
@@ -367,9 +367,9 @@
 
   {#if isComplete && downloadUrl}
     <div class="card">
-      <h2>4. Télécharger le fichier</h2>
+      <h2>4. Download file</h2>
       <button on:click={downloadFile} class="download-button">
-        💾 Télécharger {fileInfo.name}
+        💾 Download {fileInfo.name}
       </button>
     </div>
   {/if}

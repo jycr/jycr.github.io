@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guide d'utilisation - QR Code File Transfer</title>
+    <title>User Guide - QR Code File Transfer</title>
     <style>
         * {
             margin: 0;
@@ -114,12 +114,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>📱 Guide d'utilisation</h1>
+        <h1>📱 User Guide</h1>
 
         <div class="nav">
-            <a href="/">← Accueil</a>
-            <a href="/sender.html">📤 Émetteur</a>
-            <a href="/receiver.html">📥 Récepteur</a>
+            <a href="/">← Home</a>
+            <a href="/sender.html">📤 Sender</a>
+            <a href="/receiver.html">📥 Receiver</a>
         </div>
 
         <h2>🎯 Objectif</h2>
@@ -128,7 +128,7 @@
             uniquement en utilisant l'affichage et la caméra via des QR codes.
         </p>
 
-        <h2>📋 Prérequis</h2>
+        <h2>📋 Prerequisites</h2>
         <ul>
             <li>Deux appareils (ordinateurs, smartphones, tablettes)</li>
             <li>Un navigateur moderne (Chrome recommandé)</li>
@@ -136,15 +136,15 @@
             <li>Bon éclairage pour faciliter la lecture des QR codes</li>
         </ul>
 
-        <h2>🚀 Processus de transfert</h2>
+        <h2>🚀 Transfer Process</h2>
 
         <h3>Étape 1 : Préparation</h3>
         <ol>
-            <li><strong>Appareil A (Émetteur)</strong> : Ouvrez <code>sender.html</code></li>
-            <li><strong>Appareil B (Récepteur)</strong> : Ouvrez <code>receiver.html</code></li>
+            <li><strong>Appareil A (Sender)</strong> : Ouvrez <code>sender.html</code></li>
+            <li><strong>Appareil B (Receiver)</strong> : Ouvrez <code>receiver.html</code></li>
         </ol>
 
-        <h3>Étape 2 : Configuration de l'émetteur</h3>
+        <h3>Étape 2 : Sender Configuration</h3>
         <ol>
             <li>Cliquez sur "Choisir un fichier" et sélectionnez le fichier à transférer</li>
             <li>Le fichier sera automatiquement analysé et découpé en chunks</li>
@@ -162,7 +162,7 @@
             (500 ms, 2000 octets, niveau M)
         </div>
 
-        <h3>Étape 3 : Démarrage de la transmission</h3>
+        <h3>Étape 3 : Starting Transmission</h3>
         <ol>
             <li>Sur l'appareil B, cliquez sur "Démarrer le scan" et autorisez l'accès à la caméra</li>
             <li>Sur l'appareil A, cliquez sur "Démarrer la transmission"</li>
@@ -174,7 +174,7 @@
             <strong>💡 Astuce :</strong> Gardez l'appareil récepteur stable. Vous pouvez utiliser un support.
         </div>
 
-        <h3>Étape 4 : Suivi de la progression</h3>
+        <h3>Étape 4 : Tracking Progress</h3>
         <p>Sur l'appareil B, vous verrez :</p>
         <ul>
             <li>Le nom du fichier et son hash</li>
@@ -183,7 +183,7 @@
             <li>Des statistiques (total scanné, doublons, erreurs)</li>
         </ul>
 
-        <h3>Étape 5 : Récupération des chunks manquants</h3>
+        <h3>Étape 5 : Missing Chunks Recovery</h3>
         <p>Si des chunks n'ont pas été reçus :</p>
         <ol>
             <li>Sur B, cliquez sur "Arrêter le scan" puis "Générer QR de récupération"</li>
@@ -194,7 +194,7 @@
             <li>Revenez à l'étape 3 pour scanner à nouveau</li>
         </ol>
 
-        <h3>Étape 6 : Finalisation</h3>
+        <h3>Étape 6 : Finalization</h3>
         <ol>
             <li>Une fois tous les chunks reçus, le fichier est automatiquement assemblé</li>
             <li>Le hash SHA-256 est vérifié pour garantir l'intégrité</li>
@@ -207,23 +207,23 @@
             qu'il n'a pas été corrompu durant le transfert.
         </div>
 
-        <h2>⚙️ Paramètres optimaux</h2>
+        <h2>⚙️ Optimal Parameters</h2>
 
-        <h3>Fichiers légers (< 1 Mo)</h3>
+        <h3>Light Files (< 1 Mo)</h3>
         <ul>
             <li>Taille des chunks : <code>2000 octets</code></li>
             <li>Vitesse : <code>500 ms</code></li>
             <li>Correction : <code>M</code></li>
         </ul>
 
-        <h3>Fichiers moyens (1-10 Mo)</h3>
+        <h3>Medium Files (1-10 Mo)</h3>
         <ul>
             <li>Taille des chunks : <code>2500 octets</code></li>
             <li>Vitesse : <code>300 ms</code></li>
             <li>Correction : <code>M</code> ou <code>Q</code></li>
         </ul>
 
-        <h3>Gros fichiers (> 10 Mo)</h3>
+        <h3>Large Files (> 10 Mo)</h3>
         <ul>
             <li>Taille des chunks : <code>2900 octets</code></li>
             <li>Vitesse : <code>200 ms</code></li>
@@ -236,7 +236,7 @@
             ont suffisamment de batterie.
         </div>
 
-        <h2>🐛 Problèmes courants</h2>
+        <h2>🐛 Common Issues</h2>
 
         <h3>La caméra ne démarre pas</h3>
         <ul>
@@ -271,7 +271,7 @@
             <li>Augmentez le niveau de correction d'erreur</li>
         </ul>
 
-        <h2>🔒 Sécurité et confidentialité</h2>
+        <h2>🔒 Security and Privacy</h2>
         <ul>
             <li>Tous les traitements sont effectués localement sur vos appareils</li>
             <li>Aucune donnée n'est envoyée sur Internet</li>
@@ -279,7 +279,7 @@
             <li>Le transfert se fait uniquement par affichage/caméra</li>
         </ul>
 
-        <h2>💡 Astuces</h2>
+        <h2>💡 Tips</h2>
         <ul>
             <li><strong>Mode sombre :</strong> Utilisez le mode clair pour un meilleur contraste des QR codes</li>
             <li><strong>Batterie :</strong> Branchez les appareils pendant le transfert de gros fichiers</li>

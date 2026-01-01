@@ -85,7 +85,7 @@
     let chunksToTransmit = [];
 
     if (transmissionMode === 'recovery' && missingChunks.length > 0) {
-      // Mode récupération : n'envoyer que les chunks manquants
+      // Recovery mode : n'envoyer que les chunks manquants
       chunksToTransmit = missingChunks.map(idx => fileChunks[idx]).filter(Boolean);
     } else {
       // Mode normal : envoyer tous les chunks
@@ -213,32 +213,32 @@
   <h1>📤 QR Code Sender</h1>
 
   <div class="card">
-    <h2>1. Sélectionner un fichier</h2>
+    <h2>1. Select a file</h2>
     <input
       type="file"
       on:change={handleFileSelect}
       accept="*/*"
     />
     {#if selectedFile}
-      <p>✓ Fichier: <strong>{selectedFile.name}</strong> ({Math.round(selectedFile.size / 1024)} Ko)</p>
+      <p>✓ File: <strong>{selectedFile.name}</strong> ({Math.round(selectedFile.size / 1024)} KB)</p>
       <p>Hash: <code>{fileHash.substring(0, 16)}...</code></p>
       <p>Chunks: <strong>{totalChunks}</strong></p>
     {/if}
   </div>
 
   <div class="card">
-    <h2>2. Paramètres de transmission</h2>
+    <h2>2. Transmission Parameters</h2>
     <div class="settings">
       <label>
-        Vitesse de transmission (ms):
+        Transmission speed (ms):
         <input type="number" bind:value={transmissionSpeed} min="100" max="5000" step="100" />
       </label>
       <label>
-        Taille des chunks (octets):
+        Chunk size (bytes):
         <input type="number" bind:value={chunkSize} min="500" max="2900" step="100" />
       </label>
       <label>
-        Niveau de correction d'erreur:
+        Error correction level:
         <select bind:value={errorCorrectionLevel}>
           <option value="L">L (7%)</option>
           <option value="M">M (15%)</option>
@@ -258,25 +258,25 @@
           disabled={!selectedFile}
           class="primary"
         >
-          ▶ Démarrer la transmission
+          ▶ Start Transmission
         </button>
       {:else}
         <button on:click={stopTransmission} class="danger">
-          ⏹ Arrêter
+          ⏹ Stop
         </button>
       {/if}
       <button on:click={reset} class="secondary">
-        🔄 Réinitialiser
+        🔄 Reset
       </button>
     </div>
 
     {#if isTransmitting}
       <p class="status">
-        Transmission en cours...
+        Transmission in progress...
         Chunk {(currentChunkIndex % (transmissionMode === 'recovery' ? missingChunks.length : totalChunks)) + 1} /
         {transmissionMode === 'recovery' ? missingChunks.length : totalChunks}
         {#if transmissionMode === 'recovery'}
-          <span class="recovery-mode">(Mode récupération)</span>
+          <span class="recovery-mode">(Recovery mode)</span>
         {/if}
       </p>
     {/if}
@@ -289,15 +289,15 @@
   </div>
 
   <div class="card">
-    <h2>4. Récupération des chunks manquants</h2>
-    <p>Scanner le QR code de récupération affiché par le récepteur</p>
+    <h2>4. Missing chunks recovery</h2>
+    <p>Scan the recovery QR code displayed by the receiver</p>
     {#if !scannerActive}
       <button on:click={startRecoveryScanner} disabled={!selectedFile}>
-        📷 Scanner QR de récupération
+        📷 Scan Recovery QR
       </button>
     {:else}
       <button on:click={stopRecoveryScanner} class="danger">
-        ⏹ Arrêter le scan
+        ⏹ Stop le scan
       </button>
     {/if}
 
@@ -310,7 +310,7 @@
 
     {#if missingChunks.length > 0}
       <p class="info">
-        ⚠ {missingChunks.length} chunks à retransmettre
+        ⚠ {missingChunks.length} chunks to retransmit
       </p>
     {/if}
   </div>
