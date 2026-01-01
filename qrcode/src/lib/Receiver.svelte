@@ -110,6 +110,7 @@
 
   // Fonction pour traiter les données du QR code
   function processQRCode(data) {
+    console.log("QR code data received:", data);
     scanningStats.totalScanned++;
 
     try {
@@ -320,10 +321,9 @@
 </script>
 
 <main>
-  <h1>📥 QR Code Receiver</h1>
+  <header class="card">
+    <h1>📥 QR Code Receiver</h1>
 
-  <div class="card">
-    <h2>1. Scan QR codes</h2>
     <div class="controls">
       {#if !isScanning}
         <button onclick={startScanning} class="primary">
@@ -336,7 +336,9 @@
       {/if}
       <button onclick={reset} class="secondary"> 🔄 Reset </button>
     </div>
+  </header>
 
+  <section class="main-content">
     {#if isScanning}
       <div class="scanner-view">
         <video bind:this={videoElement} autoplay playsinline></video>
@@ -346,108 +348,116 @@
         </div>
       </div>
     {/if}
-  </div>
 
-  {#if fileInfo}
-    <div class="card">
-      <h2>2. Reception Progress</h2>
-      <div class="file-info">
-        <p><strong>Fichier:</strong> {fileInfo.name}</p>
-        <p>
-          <strong>Hash:</strong>
-          <code>{fileInfo.hash.substring(0, 16)}...</code>
-        </p>
-      </div>
-
-      <div class="progress-section">
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: {progress}%"></div>
-        </div>
-        <p class="progress-text">
-          {receivedCount} / {totalChunks} chunks received ({progress.toFixed(
-            1
-          )}%)
-        </p>
-      </div>
-
-      <div class="chunks-grid">
-        {#each Array(totalChunks) as _, i}
-          <div
-            class="chunk-box"
-            class:received={receivedChunks.has(i)}
-            title="Chunk {i + 1}/{totalChunks}"
-          ></div>
-        {/each}
-      </div>
-
-      <div class="stats">
-        <div class="stat-item">
-          <span class="stat-label">Total scanned:</span>
-          <span class="stat-value">{scanningStats.totalScanned}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Duplicates:</span>
-          <span class="stat-value">{scanningStats.duplicates}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Errors:</span>
-          <span class="stat-value">{scanningStats.errors}</span>
-        </div>
-      </div>
-
-      {#if isComplete}
-        <div class="success-message">✓ All chunks have been received!</div>
-      {/if}
-    </div>
-  {/if}
-
-  {#if fileInfo && !isComplete}
-    <div class="card">
-      <h2>3. Missing chunks recovery</h2>
-      <p>
-        If chunks are missing, generate a recovery QR code to scan with the
-        sender.
-      </p>
-      <button onclick={generateRecoveryQR}> 🔄 Generate Recovery QR </button>
-
-      {#if recoveryQRCode}
-        <div class="recovery-section">
-          <p class="info">
-            <strong>{missingChunks.length}</strong> missing chunk(s):
-            {missingChunks.slice(0, 10).join(", ")}
-            {#if missingChunks.length > 10}
-              ...
-            {/if}
+    {#if fileInfo}
+      <div class="card">
+        <h2>2. Reception Progress</h2>
+        <div class="file-info">
+          <p><strong>Fichier:</strong> {fileInfo.name}</p>
+          <p>
+            <strong>Hash:</strong>
+            <code>{fileInfo.hash.substring(0, 16)}...</code>
           </p>
-          <div class="qr-display">
-            <img src={recoveryQRCode} alt="QR Code de récupération" />
-            <p class="qr-caption">
-              Scan this QR with the sender page to retransmit missing chunks
-            </p>
+        </div>
+
+        <div class="progress-section">
+          <p class="progress-text">
+            {receivedCount} / {totalChunks} chunks received ({progress.toFixed(
+              1
+            )}%)
+          </p>
+
+          <div class="chunks-grid">
+            {#each Array(totalChunks) as _, i}
+              <div
+                class="chunk-box"
+                class:received={receivedChunks.has(i)}
+                title="Chunk {i + 1}/{totalChunks}"
+              ></div>
+            {/each}
           </div>
         </div>
-      {/if}
-    </div>
-  {/if}
 
-  {#if isComplete && downloadUrl}
-    <div class="card">
-      <h2>4. Download file</h2>
-      <button onclick={downloadFile} class="download-button">
-        💾 Download {fileInfo.name}
-      </button>
-    </div>
-  {/if}
+        <div class="stats">
+          <div class="stat-item">
+            <span class="stat-label">Total scanned:</span>
+            <span class="stat-value">{scanningStats.totalScanned}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Duplicates:</span>
+            <span class="stat-value">{scanningStats.duplicates}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Errors:</span>
+            <span class="stat-value">{scanningStats.errors}</span>
+          </div>
+        </div>
+
+        {#if isComplete}
+          <div class="success-message">✓ All chunks have been received!</div>
+        {/if}
+      </div>
+    {/if}
+  </section>
+
+  <footer class="card">
+    {#if fileInfo && !isComplete}
+      <div class="card">
+        <h2>3. Missing chunks recovery</h2>
+        <p>
+          If chunks are missing, generate a recovery QR code to scan with the
+          sender.
+        </p>
+        <button onclick={generateRecoveryQR}> 🔄 Generate Recovery QR </button>
+
+        {#if recoveryQRCode}
+          <div class="recovery-section">
+            <p class="info">
+              <strong>{missingChunks.length}</strong> missing chunk(s):
+              {missingChunks.slice(0, 10).join(", ")}
+              {#if missingChunks.length > 10}
+                ...
+              {/if}
+            </p>
+            <div class="qr-display">
+              <img src={recoveryQRCode} alt="QR Code de récupération" />
+              <p class="qr-caption">
+                Scan this QR with the sender page to retransmit missing chunks
+              </p>
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    {#if isComplete && downloadUrl}
+      <div class="card">
+        <h2>4. Download file</h2>
+        <button onclick={downloadFile} class="download-button">
+          💾 Download {fileInfo.name}
+        </button>
+      </div>
+    {/if}
+  </footer>
 </main>
 
-<style>
+<style lang="scss">
   main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     margin: 0 auto;
-    padding: 2rem;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
+    width: 100%;
+
+    > header,
+    > footer {
+      margin: 1rem;
+      padding: 1rem;
+    }
+
+    > .main-content {
+      flex: 1;
+    }
   }
 
   h1 {
@@ -527,58 +537,48 @@
 
   .scanner-view {
     position: relative;
-    margin: 1rem 0;
+    margin: 1rem;
     border-radius: 8px;
     overflow: hidden;
     background: #000;
-  }
 
-  video {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
 
-  .scanner-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-  }
+    .scanner-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
 
-  .scanner-frame {
-    width: 300px;
-    height: 300px;
-    border: 3px solid #4caf50;
-    border-radius: 8px;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      .scanner-frame {
+        width: calc(100% - 1rem);
+        height: calc(100% - 1rem);
+        border: 3px solid #4caf50;
+        border-radius: 8px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      }
+    }
   }
 
   .chunks-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
-    gap: 4px;
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #f5f5f5;
-    border-radius: 8px;
-  }
-
-  .chunk-box {
-    width: 20px;
-    height: 20px;
-    background: #ddd;
-    border-radius: 3px;
-    transition: background-color 0.3s ease;
-  }
-
-  .chunk-box.received {
-    background: #4caf50;
+    display: flex;
+    .chunk-box {
+      flex: 1;
+      height: 20px;
+      background: #ddd;
+      &.received {
+        background: #4caf50;
+      }
+    }
   }
 
   .progress-section {

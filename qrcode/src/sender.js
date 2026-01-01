@@ -1,9 +1,9 @@
-import './app.css'
-import { mount } from 'svelte'
-import Sender from './lib/Sender.svelte'
+import "./app.css";
+import { mount } from "svelte";
+import Sender from "./lib/Sender.svelte";
 
 const app = mount(Sender, {
-  target: document.getElementById('app'),
-})
+  target: document.body,
+});
 
-export default app
+export default app;

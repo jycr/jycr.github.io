@@ -32,6 +32,8 @@
   let totalChunks = $state(0);
   let transmittedChunks = $state(new Set());
   let infoQRCode = $state(""); // QR code initial avec les métadonnées
+  let startTransmissionButton;
+  let stopTransmissionButton;
 
   // Get maximum chunk size based on error correction level
   function getMaxChunkSize() {
@@ -131,6 +133,10 @@
     currentChunkIndex = 0;
     transmittedChunks.clear();
     transmitNextChunk();
+
+    // Mettre le focus sur le bouton Stop
+    await tick();
+    stopTransmissionButton?.focus();
   }
 
   // Function to transmit the next chunk
@@ -287,16 +293,20 @@
     fileHash = "";
     currentChunkIndex = 0;
     qrCodeUrl = "";
+    infoQRCode = "";
     missingChunks = [];
     transmissionMode = "all";
     transmittedChunks.clear();
   }
 
   // Gestionnaire de sélection de fichier
-  function handleFileSelect(event) {
+  async function handleFileSelect(event) {
     selectedFile = event.target.files[0];
     if (selectedFile) {
-      processFile();
+      await processFile();
+      // Mettre le focus sur le bouton Start après un court délai
+      await tick();
+      startTransmissionButton?.focus();
     }
   }
 
@@ -314,9 +324,8 @@
 </script>
 
 <main>
-  <h1>📤 QR Code Sender</h1>
-
-  <div class="card">
+  <header class="card">
+    <h1>📤 QR Code Sender</h1>
     <p class="field">
       <label for="fileInput">Select a file</label>
       <input
@@ -384,53 +393,66 @@
         </p>
       </div>
     </details>
-    {#if infoQRCode && !isTransmitting}
-      <div class="qr-display info-qr">
+  </header>
+
+  <section class="main-content">
+    {#if qrCodeUrl}
+      <button
+        class="qr-display"
+        type="button"
+        bind:this={stopTransmissionButton}
+        onclick={stopTransmission}
+      >
+        <img src={qrCodeUrl} alt="QR Code" />
+      </button>
+    {:else if infoQRCode}
+      <button
+        class="qr-display"
+        type="button"
+        bind:this={startTransmissionButton}
+        onclick={startTransmission}
+      >
         <img src={infoQRCode} alt="QR Code d'information" />
-        <p class="qr-caption">
-          📱 QR code d'information - Scannez-le d'abord pour préparer la
-          réception
-        </p>
-      </div>
+      </button>
     {/if}
 
     <div class="controls">
-      {#if !isTransmitting}
+      <p class="status">
+        {#if isTransmitting}
+          Transmission in progress... Chunk {(currentChunkIndex %
+            (transmissionMode === "recovery"
+              ? missingChunks.length
+              : totalChunks)) +
+            1}
+          /
+          {transmissionMode === "recovery" ? missingChunks.length : totalChunks}
+          {#if transmissionMode === "recovery"}
+            <span class="recovery-mode">(Recovery mode)</span>
+          {/if}
+        {:else if infoQRCode}
+          📱 QR code d'information - Scannez-le d'abord pour préparer la
+          réception
+        {/if}
+      </p>
+      {#if isTransmitting}
+        <button class="danger" onclick={stopTransmission}> ⏹ Stop </button>
+      {:else}
         <button
+          type="button"
           class="primary"
           onclick={startTransmission}
           disabled={!selectedFile}
         >
           ▶ Start Transmission
         </button>
-      {:else}
-        <button class="danger" onclick={stopTransmission}> ⏹ Stop </button>
       {/if}
-      <button class="secondary" onclick={reset}> 🔄 Reset </button>
+      <button type="button" class="secondary" onclick={reset}>
+        🔄 Reset
+      </button>
     </div>
+  </section>
 
-    {#if isTransmitting}
-      <p class="status">
-        Transmission in progress... Chunk {(currentChunkIndex %
-          (transmissionMode === "recovery"
-            ? missingChunks.length
-            : totalChunks)) +
-          1}
-        /
-        {transmissionMode === "recovery" ? missingChunks.length : totalChunks}
-        {#if transmissionMode === "recovery"}
-          <span class="recovery-mode">(Recovery mode)</span>
-        {/if}
-      </p>
-      {#if qrCodeUrl}
-        <div class="qr-display">
-          <img src={qrCodeUrl} alt="QR Code" />
-        </div>
-      {/if}
-    {/if}
-  </div>
-
-  <div class="card">
+  <footer class="card">
     <h2>Missing chunks recovery</h2>
     <p>Scan the recovery QR code displayed by the receiver</p>
     {#if !scannerActive}
@@ -465,38 +487,30 @@
         ⚠ {missingChunks.length} chunks to retransmit
       </p>
     {/if}
-  </div>
+  </footer>
 </main>
 
 <style lang="scss">
   main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     margin: 0 auto;
-    padding: 2rem;
-    font-family:
-      system-ui,
-      -apple-system,
-      sans-serif;
-  }
+    width: 100%;
 
-  h1 {
-    color: #333;
-    text-align: center;
-    margin-bottom: 2rem;
-  }
+    > header,
+    > footer {
+      margin: 1rem;
+      padding: 1rem;
+    }
 
-  h2 {
-    color: #555;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-  }
-
-  .card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    > .main-content {
+      flex: 1;
+      display: flex;
+      box-sizing: border-box;
+      flex-direction: column;
+      align-items: center;
+    }
   }
 
   .settings {
@@ -525,6 +539,9 @@
   }
 
   .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     margin: 1rem;
   }
 
@@ -572,42 +589,44 @@
   .qr-display {
     display: flex;
     justify-content: center;
-    margin: 1rem 0;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 4px;
-  }
-
-  .qr-display.info-qr {
-    background: #e3f2fd;
-    flex-direction: column;
     align-items: center;
+    background: #f9f9f9;
+    border: 1px solid #000;
+    padding: 0;
+    border-radius: 0;
+
+    img {
+      width: auto;
+      height: auto;
+      object-fit: contain;
+    }
   }
 
-  .qr-display.info-qr img {
-    border: 2px solid #2196f3;
+  /* Mode portrait : largeur à 100vw */
+  @media (orientation: portrait) {
+    .qr-display img {
+      width: 100vw;
+      max-width: 100vw;
+      height: auto;
+      max-height: none;
+    }
   }
 
-  .qr-display img {
-    max-width: 100%;
-    width: 100%;
-    height: auto;
-    max-height: 80vh;
-    object-fit: contain;
-  }
-
-  .qr-caption {
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
+  /* Mode paysage : hauteur à 100vh */
+  @media (orientation: landscape) {
+    .qr-display img {
+      height: 100vh;
+      max-height: 100vh;
+      width: auto;
+      max-width: none;
+    }
   }
 
   .status {
     font-weight: bold;
     color: #2196f3;
     text-align: center;
-    margin: 1rem 0;
+    margin: 0;
   }
 
   .recovery-mode {
@@ -616,14 +635,12 @@
   }
 
   .scanner-view {
-    margin: 1rem 0;
+    margin: 1rem;
     text-align: center;
-  }
 
-  .scanner-view video {
-    border: 2px solid #2196f3;
-    border-radius: 4px;
-    max-width: 100%;
+    video {
+      max-width: 100%;
+    }
   }
 
   .info {
@@ -633,41 +650,5 @@
     border-radius: 4px;
     color: #856404;
     margin-top: 1rem;
-  }
-
-  code {
-    background: #f4f4f4;
-    padding: 0.2rem 0.4rem;
-    border-radius: 3px;
-    font-family: monospace;
-  }
-
-  p {
-    margin: 0.5rem 0;
-  }
-
-  .field {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: anchor-center;
-
-    label {
-      flex: 1;
-      text-align: right;
-      padding: 0 0.5em 0 0;
-    }
-
-    input,
-    select {
-      flex: 2;
-    }
-
-    .tips {
-      color: #666;
-      width: 100%;
-      display: block;
-      text-align: right;
-      flex: 1 0 100%;
-    }
   }
 </style>
