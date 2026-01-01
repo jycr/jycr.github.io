@@ -14,33 +14,33 @@ NC='\033[0m' # No Color
 # Fonction pour afficher le menu
 show_menu() {
     clear
-    echo -e "${BLUE}🚀 QR Code File Transfer - Utilitaires${NC}"
-    echo "========================================"
-    echo ""
-    echo "Choisissez une option :"
-    echo ""
-    echo "  ${GREEN}Développement${NC}"
-    echo "    1) Démarrer le serveur de développement"
-    echo "    2) Lancer les tests"
-    echo "    3) Tests en mode watch"
-    echo "    4) Tests avec couverture"
-    echo ""
-    echo "  ${YELLOW}Production${NC}"
-    echo "    5) Construire pour la production"
-    echo "    6) Prévisualiser le build (Vite)"
-    echo "    7) Servir dist/ avec http-server"
-    echo ""
-    echo "  ${BLUE}Maintenance${NC}"
-    echo "    8) Installer les dépendances"
-    echo "    9) Nettoyer (node_modules + dist)"
-    echo "   10) Vérifier le projet (tests + build)"
-    echo ""
-    echo "  ${RED}Informations${NC}"
-    echo "   11) Afficher les URLs"
-    echo "   12) Afficher les statistiques"
-    echo ""
-    echo "    0) Quitter"
-    echo ""
+    echo -e "
+${BLUE}🚀 QR Code File Transfer - Utilitaires${NC}
+========================================
+
+Choisissez une option :
+
+  ${GREEN}Développement${NC}
+    1) Démarrer le serveur de développement
+    2) Lancer les tests
+    3) Tests en mode watch
+    4) Tests avec couverture
+
+  ${YELLOW}Production${NC}
+    5) Construire pour la production
+    6) Prévisualiser le build (Vite)
+
+  ${BLUE}Maintenance${NC}
+    8) Installer les dépendances
+    9) Nettoyer (node_modules + dist)
+   10) Vérifier le projet (tests + build)
+
+  ${RED}Informations${NC}
+   11) Afficher les URLs
+   12) Afficher les statistiques
+
+    0) Quitter
+"
 }
 
 # Fonction pour démarrer le dev server
@@ -80,31 +80,6 @@ build_prod() {
 preview_build() {
     echo -e "${YELLOW}👀 Prévisualisation du build avec Vite...${NC}"
     npm run preview
-}
-
-# Fonction pour servir dist avec http-server
-serve_dist() {
-    # Vérifier si dist existe
-    if [ ! -d "dist" ]; then
-        echo -e "${RED}❌ Le dossier dist/ n'existe pas.${NC}"
-        echo -e "${YELLOW}🔨 Lancement du build...${NC}"
-        npm run build
-        echo ""
-    fi
-
-    echo -e "${BLUE}📦 Serveur de fichiers pour dist/${NC}"
-    echo ""
-    echo "📍 URLs disponibles :"
-    echo "   - Accueil    : http://localhost:8080/"
-    echo "   - Émetteur   : http://localhost:8080/sender.html"
-    echo "   - Récepteur  : http://localhost:8080/receiver.html"
-    echo "   - Guide      : http://localhost:8080/guide.html"
-    echo ""
-    echo -e "${YELLOW}💡 Appuyez sur Ctrl+C pour arrêter le serveur${NC}"
-    echo ""
-
-    # Utiliser npx pour ne pas nécessiter d'installation globale
-    npx http-server dist -p 8080 -o
 }
 
 # Fonction pour installer
@@ -256,9 +231,6 @@ while true; do
             ;;
         6)
             preview_build
-            ;;
-        7)
-            serve_dist
             ;;
         8)
             install_deps
