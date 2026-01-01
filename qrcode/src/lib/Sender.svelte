@@ -1,4 +1,5 @@
 <script>
+    import {tick} from 'svelte';
     import QRCode from 'qrcode';
     import jsQR from 'jsqr';
 
@@ -165,6 +166,25 @@
     // Fonction pour scanner le QR code de récupération
     async function startRecoveryScanner() {
         scannerActive = true;
+
+        // Wait for DOM elements to be mounted
+        await tick();
+        await tick();
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        if (!videoElement) {
+            alert('Video element not ready. Please try again.');
+            scannerActive = false;
+            return;
+        }
+
+        // Initialize canvas context if not already done
+        if (canvas && !canvasContext) {
+            canvas.width = 400;
+            canvas.height = 300;
+            canvasContext = canvas.getContext('2d', {willReadFrequently: true});
+        }
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {facingMode: 'environment'}

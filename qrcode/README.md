@@ -4,7 +4,7 @@ A Svelte application for transferring files between two devices using only QR co
 
 [![Svelte](https://img.shields.io/badge/Svelte-5.43-ff3e00?logo=svelte)](https://svelte.dev/)
 [![Vite](https://img.shields.io/badge/Vite-7.2-646cff?logo=vite)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/Tests-22%20passing-success)](#-tests)
+[![Tests](https://img.shields.io/badge/Tests-34%20passing-success)](#-tests)
 [![Coverage](https://img.shields.io/badge/Coverage-100%25-success)](#-tests)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -47,7 +47,9 @@ npm run preview              # Preview build with Vite
 npm run serve:dist           # Serve dist/ with http-server (port 8080)
 
 # Tests
-npm test
+npm test                     # Run all tests
+npm run test:watch          # Run tests in watch mode
+npm run test:coverage       # Run tests with coverage report
 ```
 
 Then open in your browser:
@@ -158,7 +160,7 @@ correction level.
 
 ## 🧪 Tests
 
-The application includes a complete test suite with **22 tests** and **100% coverage** on utility functions.
+The application includes a comprehensive test suite with **34 tests** and **100% coverage** on utility functions.
 
 ### Run Tests
 
@@ -190,14 +192,39 @@ npm run test:coverage
 - Binary file handling
 - Multiple recovery cycles
 
+**Transmission integration tests (12 tests)** - `src/lib/__tests__/transmission.integration.test.js`
+
+- ✅ Complete transmission without errors
+- ✅ Recovery of missing chunks
+- ✅ Multiple recovery cycles
+- ✅ Binary file handling
+- ✅ Large files (10KB+)
+- ✅ Hash integrity validation
+- ✅ Special filename characters
+- ✅ Duplicate chunk detection
+- ✅ Total recovery scenario
+- ✅ Invalid chunk indices
+- ✅ Unordered chunk reception
+- ✅ Empty file edge case
+
+### Console Error Monitoring
+
+All integration tests include **strict console error monitoring** to ensure:
+- ✅ No errors during transmission
+- ✅ No errors during recovery
+- ✅ Proper error handling for edge cases
+
+See [INTEGRATION_TESTS.md](./INTEGRATION_TESTS.md) for detailed test documentation.
+
 ### Results
 
 ```
 ✓ src/lib/__tests__/integration.test.js (4 tests) 3ms
 ✓ src/lib/__tests__/fileUtils.test.js (18 tests) 4ms
+✓ src/lib/__tests__/transmission.integration.test.js (12 tests) 9ms
 
-Test Files  2 passed (2)
-Tests       22 passed (22)
+Test Files  3 passed (3)
+Tests       34 passed (34)
 Coverage    100% (fileUtils.js)
 ```
 
