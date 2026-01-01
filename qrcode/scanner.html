@@ -22,6 +22,10 @@
         .inactive {
             display: none;
         }
+
+        #resume_qrcode img {
+            border: 10px solid #FFF;
+        }
 	</style>
 </head>
 
@@ -85,6 +89,8 @@
 
     createApp({
         setup() {
+            const RESUME_PREFIX = "resume:";
+            const chunk_size = 250;
             const user_message = ref("Click receive button to start receiving");
             const decoded_chunks = ref({});
             const file_metadata = reactive({});
@@ -131,7 +137,7 @@
                 }
                 console.log("missed_chunks:", missed_chunks);
                 const qrcode_object = new QRCode("resume_qrcode", {
-                    text: "resume:" + missed_chunks.join(",").substring(0, 2028).replace(/,\d*$/, ''),
+                    text: RESUME_PREFIX + missed_chunks.join(",").substring(0, chunk_size).replace(/,\d*$/, ''),
                     width: qrcodeSize,
                     height: qrcodeSize,
                     typeNumber: 40,
