@@ -115,6 +115,20 @@
     try {
       const chunk = JSON.parse(data);
 
+      // Check if this is file info (initial QR code)
+      if (chunk.type === "fileInfo") {
+        if (!fileInfo) {
+          fileInfo = {
+            hash: chunk.fileHash,
+            name: chunk.fileName,
+            size: chunk.fileSize,
+          };
+          totalChunks = chunk.totalChunks;
+          console.log("File info received:", fileInfo);
+        }
+        return;
+      }
+
       // Vérifier que c'est un chunk valide
       if (!chunk.fileHash || chunk.chunkIndex === undefined || !chunk.data) {
         scanningStats.errors++;
@@ -356,6 +370,16 @@
         </p>
       </div>
 
+      <div class="chunks-grid">
+        {#each Array(totalChunks) as _, i}
+          <div
+            class="chunk-box"
+            class:received={receivedChunks.has(i)}
+            title="Chunk {i + 1}/{totalChunks}"
+          ></div>
+        {/each}
+      </div>
+
       <div class="stats">
         <div class="stat-item">
           <span class="stat-label">Total scanned:</span>
@@ -533,6 +557,28 @@
     border: 3px solid #4caf50;
     border-radius: 8px;
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  }
+
+  .chunks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20px, 1fr));
+    gap: 4px;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+
+  .chunk-box {
+    width: 20px;
+    height: 20px;
+    background: #ddd;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+  }
+
+  .chunk-box.received {
+    background: #4caf50;
   }
 
   .progress-section {
