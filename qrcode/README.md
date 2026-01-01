@@ -11,6 +11,7 @@ A Svelte application for transferring files between two devices using only QR co
 ## 🎯 Features
 
 ### 📤 Sender (`sender.html`)
+
 - File selection and analysis (SHA-256 hash)
 - Configurable chunk splitting (500-2900 bytes)
 - Optimized QR code generation
@@ -18,6 +19,7 @@ A Svelte application for transferring files between two devices using only QR co
 - Recovery QR scanner to retransmit only missing chunks
 
 ### 📥 Receiver (`receiver.html`)
+
 - Real-time scanning via camera
 - Chunk reception and storage with duplicate detection
 - Progress bar and detailed statistics
@@ -26,7 +28,9 @@ A Svelte application for transferring files between two devices using only QR co
 - Download of reconstructed file
 
 ### 🔄 Recovery Mechanism
-The receiver generates a QR code listing missing chunks. The sender scans this QR and retransmits only the necessary data. The process is repeatable until complete reception.
+
+The receiver generates a QR code listing missing chunks. The sender scans this QR and retransmits only the necessary
+data. The process is repeatable until complete reception.
 
 ## 🚀 Quick Start
 
@@ -47,6 +51,7 @@ npm test
 ```
 
 Then open in your browser:
+
 - **Home** : http://localhost:5173/ (dev) or http://localhost:8080/ (dist)
 - **Sender** : http://localhost:5173/sender.html
 - **Receiver** : http://localhost:5173/receiver.html
@@ -56,29 +61,31 @@ Then open in your browser:
 ### Basic Scenario
 
 1. **Sender device** : Open `sender.html`
-   - Choose a file
-   - Adjust parameters (speed, chunk size, correction)
-   - Start transmission
+    - Choose a file
+    - Adjust parameters (speed, chunk size, correction)
+    - Start transmission
 
 2. **Receiver device** : Open `receiver.html`
-   - Start scanning
-   - Allow camera access
-   - Place camera facing QR codes (distance 20-30 cm)
+    - Start scanning
+    - Allow camera access
+    - Place camera facing QR codes (distance 20-30 cm)
 
 3. **Recovery** (if needed) :
-   - On receiver: Generate recovery QR
-   - On sender: Scan this QR
-   - Sender automatically retransmits missing chunks
+    - On receiver: Generate recovery QR
+    - On sender: Scan this QR
+    - Sender automatically retransmits missing chunks
 
 ### Server Options for Testing
 
 **Development (Hot reload)**
+
 ```bash
 npm run dev
 # Access: http://localhost:5173/
 ```
 
 **Production Build**
+
 ```bash
 npm run build
 npm run preview          # Vite server (port 4173)
@@ -88,15 +95,32 @@ npm run serve:dist       # http-server (port 8080)
 ./scripts.sh             # Interactive menu with all options
 ```
 
-💡 **Tip** : Use `./scripts.sh` for an interactive menu with all available commands, or `serve:dist` to test production build on different devices (accessible via local IP).
+💡 **Tip** : Use `./scripts.sh` for an interactive menu with all available commands, or `serve:dist` to test production
+build on different devices (accessible via local IP).
 
 ## ⚙️ Recommended Parameters
 
-| File Size | Chunk Size | Speed | Correction |
-|-----------|------------|-------|------------|
-| < 1 MB | 2000 bytes | 500 ms | M (15%) |
-| 1-10 MB | 2500 bytes | 300 ms | M or Q |
-| > 10 MB | 2900 bytes | 200 ms | L (7%) |
+### QR Code Capacity Limits
+
+The maximum chunk size depends on the error correction level:
+
+| Error Correction | Correction Rate | Max Chunk Size |
+|------------------|-----------------|----------------|
+| L (Low)          | 7%              | ~2700 bytes    |
+| M (Medium)       | 15%             | ~2000 bytes    |
+| Q (Quartile)     | 25%             | ~1400 bytes    |
+| H (High)         | 30%             | ~1000 bytes    |
+
+⚠️ **Important**: The application will automatically validate and adjust chunk size based on the selected error
+correction level.
+
+### Recommended Settings by File Size
+
+| File Size | Chunk Size | Speed  | Correction |
+|-----------|------------|--------|------------|
+| < 1 MB    | 1400 bytes | 500 ms | M (15%)    |
+| 1-10 MB   | 2000 bytes | 300 ms | L or M     |
+| > 10 MB   | 2700 bytes | 200 ms | L (7%)     |
 
 ## 🛠️ Technologies
 
@@ -107,6 +131,7 @@ npm run serve:dist       # http-server (port 8080)
 ## 📊 Data Format
 
 ### Chunk QR Code
+
 ```json
 {
   "fileHash": "sha256_hash",
@@ -118,11 +143,16 @@ npm run serve:dist       # http-server (port 8080)
 ```
 
 ### Recovery QR Code
+
 ```json
 {
   "type": "recovery",
   "fileHash": "sha256_hash",
-  "missingChunks": [1, 5, 12]
+  "missingChunks": [
+    1,
+    5,
+    12
+  ]
 }
 ```
 
@@ -146,6 +176,7 @@ npm run test:coverage
 ### Available Tests
 
 **Unit tests (18 tests)** - `src/lib/__tests__/fileUtils.test.js`
+
 - File splitting into chunks
 - Chunks assembly into file
 - Missing chunks detection
@@ -153,6 +184,7 @@ npm run test:coverage
 - Edge cases and error handling
 
 **Integration tests (4 tests)** - `src/lib/__tests__/integration.test.js`
+
 - Complete successful transfer scenario
 - Transfer with missing chunks and recovery
 - Binary file handling
@@ -181,14 +213,14 @@ Coverage    100% (fileUtils.js)
 Tests are in `src/lib/__tests__/`. Example:
 
 ```javascript
-import { describe, it, expect } from 'vitest';
-import { myFunction } from '../myModule';
+import {describe, it, expect} from 'vitest';
+import {myFunction} from '../myModule';
 
 describe('My module', () => {
-  it('should work correctly', () => {
-    const result = myFunction('test');
-    expect(result).toBe('expected');
-  });
+    it('should work correctly', () => {
+        const result = myFunction('test');
+        expect(result).toBe('expected');
+    });
 });
 ```
 
@@ -214,12 +246,12 @@ src/
 
 ## 🌐 Compatibility
 
-| Browser | Support |
-|---------|---------|
-| Chrome 90+ | ✅ Recommended |
-| Safari 14+ | ✅ Tested |
-| Firefox 88+ | ✅ Tested |
-| Edge 90+ | ⚠️ Not tested |
+| Browser     | Support       |
+|-------------|---------------|
+| Chrome 90+  | ✅ Recommended |
+| Safari 14+  | ✅ Tested      |
+| Firefox 88+ | ✅ Tested      |
+| Edge 90+    | ⚠️ Not tested |
 
 ## 🐛 Troubleshooting
 
@@ -229,11 +261,11 @@ src/
 
 ## 📈 Transfer Time Estimates
 
-| Size | Time (default: 2000 bytes, 500 ms) |
-|------|-------------------------------------|
-| 100 KB | ~25 seconds |
-| 1 MB | ~4 minutes |
-| 10 MB | ~42 minutes |
+| Size   | Time (default: 2000 bytes, 500 ms) |
+|--------|------------------------------------|
+| 100 KB | ~25 seconds                        |
+| 1 MB   | ~4 minutes                         |
+| 10 MB  | ~42 minutes                        |
 
 ## 🤝 Contributing
 
