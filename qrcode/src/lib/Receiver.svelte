@@ -3,8 +3,8 @@
     import jsQR from 'jsqr';
     import QRCode from 'qrcode';
 
-    let videoElement;
-    let canvas;
+    let videoElement = $state();
+    let canvas = $state();
     let canvasContext;
     let isScanning = $state(false);
     let receivedChunks = $state(new Map());
@@ -301,15 +301,15 @@
 		<h2>1. Scan QR codes</h2>
 		<div class="controls">
 			{#if !isScanning}
-				<button on:click={startScanning} class="primary">
+				<button onclick={startScanning} class="primary">
 					📷 Start Scanning
 				</button>
 			{:else}
-				<button on:click={stopScanning} class="danger">
+				<button onclick={stopScanning} class="danger">
 					⏹ Stop Scanning
 				</button>
 			{/if}
-			<button on:click={reset} class="secondary">
+			<button onclick={reset} class="secondary">
 				🔄 Reset
 			</button>
 		</div>
@@ -369,7 +369,7 @@
 		<div class="card">
 			<h2>3. Missing chunks recovery</h2>
 			<p>If chunks are missing, generate a recovery QR code to scan with the sender.</p>
-			<button on:click={generateRecoveryQR}>
+			<button onclick={generateRecoveryQR}>
 				🔄 Generate Recovery QR
 			</button>
 
@@ -394,7 +394,7 @@
 	{#if isComplete && downloadUrl}
 		<div class="card">
 			<h2>4. Download file</h2>
-			<button on:click={downloadFile} class="download-button">
+			<button onclick={downloadFile} class="download-button">
 				💾 Download {fileInfo.name}
 			</button>
 		</div>

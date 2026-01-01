@@ -17,8 +17,8 @@
     let isTransmitting = $state(false);
     let currentChunkIndex = $state(0);
     let qrCodeUrl = $state('');
-    let canvas;
-    let videoElement;
+    let canvas = $state();
+    let videoElement = $state();
     let canvasContext;
     let scannerActive = $state(false);
     let missingChunks = $state([]);
@@ -104,17 +104,17 @@
         transmitNextChunk();
     }
 
-    // Fonction pour transmettre le prochain chunk
+    // Function to transmit the next chunk
     async function transmitNextChunk() {
         if (!isTransmitting) return;
 
         let chunksToTransmit = [];
 
         if (transmissionMode === 'recovery' && missingChunks.length > 0) {
-            // Recovery mode : n'envoyer que les chunks manquants
+            // Recovery mode: send only missing chunks
             chunksToTransmit = missingChunks.map(idx => fileChunks[idx]).filter(Boolean);
         } else {
-            // Mode normal : envoyer tous les chunks
+            // Normal mode: send all chunks
             chunksToTransmit = fileChunks;
         }
 
@@ -123,10 +123,17 @@
             return;
         }
 
-        const chunk = chunksToTransmit[currentChunkIndex % chunksToTransmit.length];
+        // Check if we've transmitted all chunks (don't loop)
+        if (currentChunkIndex >= chunksToTransmit.length) {
+            isTransmitting = false;
+            startRecoveryScanner();
+            return;
+        }
+
+        const chunk = chunksToTransmit[currentChunkIndex];
 
         try {
-            // Générer le QR code avec les données du chunk
+            // Generate QR code with chunk data
             const qrData = JSON.stringify(chunk);
             qrCodeUrl = await QRCode.toDataURL(qrData, {
                 errorCorrectionLevel: errorCorrectionLevel,
@@ -258,7 +265,8 @@
 		</p>
 		{#if selectedFile}
 			<div class="file-info">
-				<p>✓ File: <strong>{selectedFile.name}</strong> ({Math.round(selectedFile.size / 1000)} kB → {totalChunks} chunks)</p>
+				<p>✓ File: <strong>{selectedFile.name}</strong> ({Math.round(selectedFile.size / 1000)} kB
+					→ {totalChunks} chunks)</p>
 				<p>Hash: <code>sha256:{fileHash}</code></p>
 			</div>
 		{/if}
@@ -334,17 +342,16 @@
 					<span class="recovery-mode">(Recovery mode)</span>
 				{/if}
 			</p>
-		{/if}
-
-		{#if qrCodeUrl}
-			<div class="qr-display">
-				<img src={qrCodeUrl} alt="QR Code"/>
-			</div>
+			{#if qrCodeUrl}
+				<div class="qr-display">
+					<img src={qrCodeUrl} alt="QR Code"/>
+				</div>
+			{/if}
 		{/if}
 	</div>
 
 	<div class="card">
-		<h2>4. Missing chunks recovery</h2>
+		<h2>Missing chunks recovery</h2>
 		<p>Scan the recovery QR code displayed by the receiver</p>
 		{#if !scannerActive}
 			<button onclick={startRecoveryScanner} disabled={!selectedFile}>
