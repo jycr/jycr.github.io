@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide d'utilisation - QR Code File Transfer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        h2 {
+            color: #764ba2;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: #555;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tip {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .nav a {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .nav a:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Guide d'utilisation</h1>
+
+        <div class="nav">
+            <a href="/">← Accueil</a>
+            <a href="/sender.html">📤 Émetteur</a>
+            <a href="/receiver.html">📥 Récepteur</a>
+        </div>
+
+        <h2>🎯 Objectif</h2>
+        <p>
+            Cette application permet de transférer des fichiers entre deux appareils sans connexion réseau,
+            uniquement en utilisant l'affichage et la caméra via des QR codes.
+        </p>
+
+        <h2>📋 Prérequis</h2>
+        <ul>
+            <li>Deux appareils (ordinateurs, smartphones, tablettes)</li>
+            <li>Un navigateur moderne (Chrome recommandé)</li>
+            <li>Accès à la caméra autorisé sur l'appareil récepteur</li>
+            <li>Bon éclairage pour faciliter la lecture des QR codes</li>
+        </ul>
+
+        <h2>🚀 Processus de transfert</h2>
+
+        <h3>Étape 1 : Préparation</h3>
+        <ol>
+            <li><strong>Appareil A (Émetteur)</strong> : Ouvrez <code>sender.html</code></li>
+            <li><strong>Appareil B (Récepteur)</strong> : Ouvrez <code>receiver.html</code></li>
+        </ol>
+
+        <h3>Étape 2 : Configuration de l'émetteur</h3>
+        <ol>
+            <li>Cliquez sur "Choisir un fichier" et sélectionnez le fichier à transférer</li>
+            <li>Le fichier sera automatiquement analysé et découpé en chunks</li>
+            <li>Ajustez les paramètres si nécessaire :
+                <ul>
+                    <li><strong>Vitesse</strong> : Plus rapide = transmission plus rapide mais plus d'erreurs</li>
+                    <li><strong>Taille des chunks</strong> : Plus grand = moins de QR codes mais plus difficile à lire</li>
+                    <li><strong>Correction d'erreur</strong> : Plus élevé = plus fiable mais moins de données par QR</li>
+                </ul>
+            </li>
+        </ol>
+
+        <div class="tip">
+            <strong>💡 Conseil :</strong> Pour commencer, utilisez les paramètres par défaut
+            (500 ms, 2000 octets, niveau M)
+        </div>
+
+        <h3>Étape 3 : Démarrage de la transmission</h3>
+        <ol>
+            <li>Sur l'appareil B, cliquez sur "Démarrer le scan" et autorisez l'accès à la caméra</li>
+            <li>Sur l'appareil A, cliquez sur "Démarrer la transmission"</li>
+            <li>Les QR codes commencent à s'afficher sur A</li>
+            <li>Placez la caméra de B face à l'écran de A, à environ 20-30 cm de distance</li>
+        </ol>
+
+        <div class="tip">
+            <strong>💡 Astuce :</strong> Gardez l'appareil récepteur stable. Vous pouvez utiliser un support.
+        </div>
+
+        <h3>Étape 4 : Suivi de la progression</h3>
+        <p>Sur l'appareil B, vous verrez :</p>
+        <ul>
+            <li>Le nom du fichier et son hash</li>
+            <li>Une barre de progression</li>
+            <li>Le nombre de chunks reçus</li>
+            <li>Des statistiques (total scanné, doublons, erreurs)</li>
+        </ul>
+
+        <h3>Étape 5 : Récupération des chunks manquants</h3>
+        <p>Si des chunks n'ont pas été reçus :</p>
+        <ol>
+            <li>Sur B, cliquez sur "Arrêter le scan" puis "Générer QR de récupération"</li>
+            <li>Un QR code s'affiche avec la liste des chunks manquants</li>
+            <li>Sur A, cliquez sur "Scanner QR de récupération"</li>
+            <li>Pointez la caméra de A vers le QR affiché par B</li>
+            <li>A retransmet automatiquement uniquement les chunks manquants</li>
+            <li>Revenez à l'étape 3 pour scanner à nouveau</li>
+        </ol>
+
+        <h3>Étape 6 : Finalisation</h3>
+        <ol>
+            <li>Une fois tous les chunks reçus, le fichier est automatiquement assemblé</li>
+            <li>Le hash SHA-256 est vérifié pour garantir l'intégrité</li>
+            <li>Un message de succès s'affiche</li>
+            <li>Cliquez sur "Télécharger" pour sauvegarder le fichier</li>
+        </ol>
+
+        <div class="info">
+            <strong>ℹ️ Information :</strong> Le fichier est vérifié avec un hash SHA-256 pour garantir
+            qu'il n'a pas été corrompu durant le transfert.
+        </div>
+
+        <h2>⚙️ Paramètres optimaux</h2>
+
+        <h3>Fichiers légers (< 1 Mo)</h3>
+        <ul>
+            <li>Taille des chunks : <code>2000 octets</code></li>
+            <li>Vitesse : <code>500 ms</code></li>
+            <li>Correction : <code>M</code></li>
+        </ul>
+
+        <h3>Fichiers moyens (1-10 Mo)</h3>
+        <ul>
+            <li>Taille des chunks : <code>2500 octets</code></li>
+            <li>Vitesse : <code>300 ms</code></li>
+            <li>Correction : <code>M</code> ou <code>Q</code></li>
+        </ul>
+
+        <h3>Gros fichiers (> 10 Mo)</h3>
+        <ul>
+            <li>Taille des chunks : <code>2900 octets</code></li>
+            <li>Vitesse : <code>200 ms</code></li>
+            <li>Correction : <code>L</code></li>
+        </ul>
+
+        <div class="warning">
+            <strong>⚠️ Attention :</strong> Pour les très gros fichiers (> 100 Mo),
+            le transfert peut prendre beaucoup de temps. Assurez-vous que les deux appareils
+            ont suffisamment de batterie.
+        </div>
+
+        <h2>🐛 Problèmes courants</h2>
+
+        <h3>La caméra ne démarre pas</h3>
+        <ul>
+            <li>Vérifiez que vous avez autorisé l'accès à la caméra</li>
+            <li>Utilisez HTTPS ou localhost</li>
+            <li>Redémarrez le navigateur</li>
+            <li>Essayez un autre navigateur</li>
+        </ul>
+
+        <h3>Les QR codes ne se lisent pas</h3>
+        <ul>
+            <li>Augmentez l'éclairage</li>
+            <li>Rapprochez ou éloignez la caméra</li>
+            <li>Stabilisez les appareils</li>
+            <li>Réduisez la vitesse de transmission</li>
+            <li>Augmentez le niveau de correction d'erreur</li>
+            <li>Réduisez la taille des chunks</li>
+        </ul>
+
+        <h3>Beaucoup de chunks manquants</h3>
+        <ul>
+            <li>Ralentissez la vitesse de transmission</li>
+            <li>Augmentez la luminosité de l'écran émetteur</li>
+            <li>Améliorez la qualité de la caméra (nettoyez l'objectif)</li>
+            <li>Utilisez un niveau de correction plus élevé</li>
+        </ul>
+
+        <h3>Le hash ne correspond pas</h3>
+        <ul>
+            <li>Réinitialisez et recommencez le transfert</li>
+            <li>Vérifiez que le fichier source n'a pas été modifié</li>
+            <li>Augmentez le niveau de correction d'erreur</li>
+        </ul>
+
+        <h2>🔒 Sécurité et confidentialité</h2>
+        <ul>
+            <li>Tous les traitements sont effectués localement sur vos appareils</li>
+            <li>Aucune donnée n'est envoyée sur Internet</li>
+            <li>L'intégrité est vérifiée par hash SHA-256</li>
+            <li>Le transfert se fait uniquement par affichage/caméra</li>
+        </ul>
+
+        <h2>💡 Astuces</h2>
+        <ul>
+            <li><strong>Mode sombre :</strong> Utilisez le mode clair pour un meilleur contraste des QR codes</li>
+            <li><strong>Batterie :</strong> Branchez les appareils pendant le transfert de gros fichiers</li>
+            <li><strong>Distance :</strong> Maintenez une distance de 20-30 cm entre l'écran et la caméra</li>
+            <li><strong>Stabilité :</strong> Utilisez des supports pour maintenir les appareils stables</li>
+            <li><strong>Test :</strong> Faites un test avec un petit fichier avant de transférer un gros fichier</li>
+        </ul>
+
+        <div class="tip">
+            <strong>💡 Pro tip :</strong> Pour les transferts répétitifs, notez les paramètres
+            qui fonctionnent le mieux avec vos appareils !
+        </div>
+
+        <h2>📊 Estimation du temps de transfert</h2>
+        <p>Avec les paramètres par défaut (2000 octets, 500 ms) :</p>
+        <ul>
+            <li><strong>100 Ko</strong> : ~25 secondes</li>
+            <li><strong>1 Mo</strong> : ~4 minutes</li>
+            <li><strong>10 Mo</strong> : ~42 minutes</li>
+            <li><strong>100 Mo</strong> : ~7 heures</li>
+        </ul>
+
+        <div class="warning">
+            <strong>⚠️ Note :</strong> Ces estimations sont théoriques. Le temps réel dépend
+            de nombreux facteurs (qualité de la caméra, éclairage, stabilité, etc.)
+        </div>
+
+        <div class="nav" style="margin-top: 3rem;">
+            <a href="/">← Retour à l'accueil</a>
+        </div>
+    </div>
+</body>
+</html>
+
