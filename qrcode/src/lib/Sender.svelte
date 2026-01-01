@@ -30,7 +30,7 @@
   let chunkSize = $state(1400); // Maximum data size per QR code (in bytes) - reduced default
   let transmissionSpeed = $state(100); // Milliseconds between each QR code
   let errorCorrectionLevel = $state("M"); // L, M, Q, H
-  let numberOfQRCodes = $state(4); // Nombre de QR codes à afficher simultanément
+  let numberOfQRCodes = $state(1); // Nombre de QR codes à afficher simultanément
   let totalChunks = $state(0);
   let transmittedChunks = $state(new Set());
   let infoQRCode = $state(""); // QR code initial avec les métadonnées
@@ -441,13 +441,11 @@
 
   <section class="main-content">
     {#if qrCodeUrls.length > 0}
-      <div class="qr-grid">
+      <button class="qr-display" type="button" onclick={stopTransmission}>
         {#each qrCodeUrls as qrUrl, index}
-          <button class="qr-display" type="button" onclick={stopTransmission}>
-            <img src={qrUrl} alt="QR Code {index + 1}" />
-          </button>
+          <img src={qrUrl} alt="QR Code {index + 1}" />
         {/each}
-      </div>
+      </button>
     {:else if infoQRCode}
       <button
         class="qr-display"
@@ -455,7 +453,9 @@
         bind:this={startTransmissionButton}
         onclick={startTransmission}
       >
-        <img src={infoQRCode} alt="QR Code d'information" />
+        {#each Array(numberOfQRCodes) as _, index}
+          <img src={infoQRCode} alt="QR Code d'information {index + 1}" />
+        {/each}
       </button>
     {/if}
 
@@ -640,35 +640,25 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f9f9f9;
-    border: 1px solid #000;
     padding: 0;
     border-radius: 0;
 
     img {
+      border: 1px solid #000;
       width: auto;
       height: auto;
       object-fit: contain;
     }
   }
 
-  .qr-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    padding: 1rem;
-    width: 100%;
-    max-width: 1200px;
+  .qr-display {
+    aspect-ratio: 1;
 
-    .qr-display {
-      aspect-ratio: 1;
-
-      img {
-        width: 100%;
-        height: 100%;
-        max-width: 100%;
-        max-height: 100%;
-      }
+    img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
     }
   }
 
