@@ -1,34 +1,52 @@
-<script>
+<script lang="ts">
   import { tick } from "svelte";
-  import { scanImageData } from "@undecaf/zbar-wasm";
   import QRCode from "qrcode";
-  import { bytesToHex, getIndexBytes } from "./commons";
+  import type {
+    FileInfo,
+    ScanningStats,
+    ScannedSymbol,
+  } from "./types";
+  import {
+    parseFileInfoQRCode,
+    parseChunk,
+    assembleFile,
+    findMissingChunks,
+    isFileComplete,
+    downloadFile as downloadFileUtil,
+  } from "./receiverService";
+  import {
+    startCameraStream,
+    stopCameraStream,
+    scanVideoFrame,
+    initializeCanvas,
+  } from "./scannerService";
+  import { generateRecoveryQRCode } from "./senderService";
 
   // DOM references should NOT use $state() - use regular let for bind:this
-  let videoElement;
-  let canvas;
-  let canvasContext;
-  let isScanning = $state(false);
-  let fileInfo = $state(null);
-  let recoveryQRCode = $state("");
-  let downloadUrl = $state("");
+  let videoElement: HTMLVideoElement | undefined = undefined;
+  let canvas: HTMLCanvasElement | undefined = undefined;
+  let canvasContext: CanvasRenderingContext2D | undefined = undefined;
+  let isScanning = $state<boolean>(false);
+  let fileInfo = $state<FileInfo | null>(null);
+  let recoveryQRCode = $state<string>("");
+  let downloadUrl = $state<string>("");
 
   // Statistics
-  let missingChunks = $state([]);
-  let lastChunkTime = $state(Date.now());
-  let scanningStats = $state({
+  let missingChunks = $state<number[]>([]);
+  let lastChunkTime = $state<number>(Date.now());
+  let scanningStats = $state<ScanningStats>({
     totalScanned: 0,
     duplicates: 0,
     errors: 0,
   });
 
   // Reactive derived values for Svelte 5
-  let isComplete = $derived(
-    fileInfo && fileInfo.receivedCount === fileInfo.totalChunks
+  let isComplete = $derived<boolean>(
+    fileInfo !== null && isFileComplete(fileInfo)
   );
 
   // Function to start scanning
-  async function startScanning() {
+  async function startScanning(): Promise<void> {
     isScanning = true;
 
     // Wait for DOM to update
@@ -42,7 +60,7 @@
 
     // Initialize canvas context if not already done
     if (canvas && !canvasContext) {
-      canvasContext = canvas.getContext("2d", { willReadFrequently: true });
+      canvasContext = initializeCanvas(canvas);
     }
 
     if (!canvasContext) {
@@ -52,15 +70,11 @@
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+      await startCameraStream(videoElement, {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
       });
-      videoElement.srcObject = stream;
-      videoElement.play();
       requestAnimationFrame(scanQRCode);
     } catch (error) {
       console.error("Camera access error:", error);
@@ -70,135 +84,40 @@
   }
 
   // Fonction pour arrêter le scan
-  function stopScanning() {
+  function stopScanning(): void {
     isScanning = false;
-    if (videoElement && videoElement.srcObject) {
-      videoElement.srcObject.getTracks().forEach((track) => track.stop());
-      videoElement.srcObject = null;
+    if (videoElement) {
+      stopCameraStream(videoElement);
     }
   }
 
   // Main QR code scanning function
-  async function scanQRCode() {
-    if (!isScanning || !canvasContext) return;
+  async function scanQRCode(): Promise<void> {
+    if (!isScanning || !canvasContext || !videoElement || !canvas) return;
 
-    if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-      canvas.height = videoElement.videoHeight;
-      canvas.width = videoElement.videoWidth;
+    const symbols = await scanVideoFrame(videoElement, canvas, canvasContext);
 
-      canvasContext.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      const imageData = canvasContext.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-
-      try {
-        const symbols = await scanImageData(imageData);
-
-        // Traiter tous les QR codes détectés
-        if (symbols && symbols.length > 0) {
-          for (const symbol of symbols) {
-            // Utiliser .data pour les données binaires brutes (Int8Array)
-            // symbol.decode() fait un décodage UTF-8 qui corrompt les bytes binaires
-            if (symbol?.data.length > 0) {
-              processQRCode(symbol);
-            }
-          }
+    // Traiter tous les QR codes détectés
+    if (symbols.length > 0) {
+      for (const symbol of symbols) {
+        if (symbol?.data.length > 0) {
+          processQRCode(symbol);
         }
-      } catch (error) {
-        console.error("Erreur de scan zbar:", error);
       }
     }
 
     requestAnimationFrame(scanQRCode);
   }
 
-  const START_JSON = "{".charCodeAt(0);
-  function parseJsonFileInfo(symbol) {
-    if (symbol.data[0] !== START_JSON) {
-      throw new Error("Data is not JSON");
-    }
-
-    // Essayer de décoder comme JSON d'abord (pour le QR d'info)
-    const jsonData = JSON.parse(symbol.decode());
-
-    // Check if this is file info (initial QR code)
-    if (jsonData.type === "fileInfo") {
-      // Déterminer le nombre d'octets pour l'index
-      const indexBytes = getIndexBytes(jsonData.totalChunks);
-      return {
-        hash: jsonData.fileHash, // SHA1 en hex
-        name: jsonData.fileName,
-        size: jsonData.fileSize,
-        totalChunks: jsonData.totalChunks,
-        indexBytes,
-        chunks: [],
-        receivedCount: 0,
-      };
-    } else {
-      console.warn("Unknown JSON QR code type:", jsonData.type);
-      throw new Error("Unknown JSON QR code type: " + jsonData.type);
-    }
-  }
-  function parseChunck(symbol) {
-    // Convertir Int8Array (valeurs signées) en Uint8Array (valeurs non-signées)
-    let bytes;
-    if (symbol.data instanceof Int8Array) {
-      // zbar-wasm retourne un Int8Array, on doit le convertir en Uint8Array
-      bytes = new Uint8Array(symbol.data.length);
-      for (let i = 0; i < symbol.data.length; i++) {
-        // Convertir valeur signée (-128 à 127) en non-signée (0 à 255)
-        bytes[i] = symbol.data[i] & 0xff;
-      }
-    } else if (symbol.data instanceof Uint8Array) {
-      bytes = symbol.data;
-    } else {
-      throw new Error("Invalid symbol data type");
-    }
-
-    // Format: [SHA1(20)][chunkIndex(1-3 octets)][data]
-    if (bytes.length < 21) {
-      throw new Error("Chunk too short");
-    }
-
-    // Extraire le hash SHA1 (20 premiers octets)
-    const chunkHash = bytesToHex(bytes.slice(0, 20));
-
-    // Vérifier que le chunk appartient au même fichier
-    if (chunkHash !== fileInfo.hash) {
-      throw new Error(
-        `Chunk hash does not match file hash: ${chunkHash}, expected: ${fileInfo.hash}`
-      );
-    }
-
-    // Extraire l'index du chunk (big endian)
-    let chunkIndex = 0;
-    for (let i = 0; i < fileInfo.indexBytes; i++) {
-      chunkIndex = (chunkIndex << 8) | bytes[20 + i];
-    }
-
-    // Vérifier la validité de l'index
-    if (chunkIndex < 0 || chunkIndex >= fileInfo.totalChunks) {
-      throw new Error(`Invalid chunk index: ${chunkIndex}`);
-    }
-
-    // Extraire les données du chunk (après le header)
-    return {
-      index: chunkIndex,
-      data: bytes.slice(20 + fileInfo.indexBytes),
-    };
-  }
-
   // Fonction pour traiter les données du QR code
-  function processQRCode(symbol) {
+  function processQRCode(symbol: ScannedSymbol): void {
+    // Essayer de parser comme QR d'info d'abord
     try {
-      fileInfo = parseJsonFileInfo(symbol);
+      fileInfo = parseFileInfoQRCode(symbol);
       console.log("File info received:", fileInfo);
       return;
     } catch (e) {
-      // Data is not JSON, continue to process as binary chunk encoded in string
+      // Data is not JSON, continue to process as binary chunk
     }
 
     scanningStats.totalScanned++;
@@ -209,12 +128,15 @@
         console.log("Waiting for file info QR code first...");
         return;
       }
-      const chunk = parseChunck(symbol);
+
+      const chunk = parseChunk(symbol, fileInfo);
+
       // Vérifier si on a déjà ce chunk
       if (fileInfo.chunks[chunk.index] !== undefined) {
         scanningStats.duplicates++;
         return;
       }
+
       fileInfo.receivedCount++;
 
       // Stocker le chunk (en bytes bruts)
@@ -226,9 +148,9 @@
       );
 
       // Vérifier si tous les chunks sont reçus
-      if (fileInfo.receivedCount === fileInfo.totalChunks) {
+      if (isComplete) {
         stopScanning();
-        assembleFile();
+        assembleReceivedFile();
       }
     } catch (error) {
       scanningStats.errors++;
@@ -237,82 +159,42 @@
   }
 
   // Fonction pour assembler le fichier à partir des chunks
-  async function assembleFile() {
+  async function assembleReceivedFile(): Promise<void> {
+    if (!fileInfo) return;
+
     console.log("Assembling file...");
 
-    try {
-      // Trier les chunks par index
-      const chunks = [];
-      for (let i = 0; i < fileInfo.totalChunks; i++) {
-        if (fileInfo.chunks[i] === undefined) {
-          console.error(`missing chunk: ${i}`);
-          return;
-        }
-        chunks.push(fileInfo.chunks[i]);
-      }
+    const result = await assembleFile(fileInfo);
 
-      // Calculer la taille totale
-      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-      const fileData = new Uint8Array(totalSize);
-
-      // Copier tous les chunks dans le tableau final
-      let offset = 0;
-      for (const chunk of chunks) {
-        fileData.set(chunk, offset);
-        offset += chunk.length;
-      }
-
-      // Vérifier le hash (SHA1 pour correspondre au sender)
-      const hashBuffer = await crypto.subtle.digest("SHA-1", fileData);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const calculatedHash = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      if (calculatedHash !== fileInfo.hash) {
-        alert("⚠ Error: File hash does not match!");
-        console.error("Expected hash:", fileInfo.hash);
-        console.error("Calculated hash:", calculatedHash);
-        return;
-      }
-
-      // Create a blob and a download URL
-      const blob = new Blob([fileData]);
-      downloadUrl = URL.createObjectURL(blob);
-
-      console.log("✓ File assembled successfully!");
-    } catch (error) {
-      console.error("Error assembling file:", error);
-      alert("Error assembling file: " + error.message);
+    if (!result.success) {
+      alert(`⚠ Error: ${result.error}`);
+      console.error("Assembly error:", result.error);
+      return;
     }
+
+    downloadUrl = result.downloadUrl!;
+    console.log("✓ File assembled successfully!");
   }
 
   // Fonction pour générer le QR code de récupération
-  async function generateRecoveryQR() {
-    missingChunks = [];
-    for (let i = 0; i < fileInfo.totalChunks; i++) {
-      if (fileInfo.chunks[i] === undefined) {
-        missingChunks.push(i);
-      }
-    }
+  async function generateRecoveryQR(): Promise<void> {
+    if (!fileInfo) return;
+
+    missingChunks = findMissingChunks(fileInfo);
 
     if (missingChunks.length === 0) {
       alert("All chunks have been received!");
       return;
     }
 
-    const recoveryData = {
-      type: "recovery",
-      fileHash: fileInfo.hash,
-      missingChunks: missingChunks,
-    };
-
     try {
-      recoveryQRCode = await QRCode.toDataURL(JSON.stringify(recoveryData), {
-        errorCorrectionLevel: "M",
-        margin: 1,
-        width: 400,
-      });
+      // Convertir le hash hex en Uint8Array pour le service
+      const hashBytes = new Uint8Array(20);
+      for (let i = 0; i < 20; i++) {
+        hashBytes[i] = parseInt(fileInfo.hash.slice(i * 2, i * 2 + 2), 16);
+      }
+      
+      recoveryQRCode = await generateRecoveryQRCode(hashBytes, missingChunks);
     } catch (error) {
       console.error(
         "Erreur lors de la génération du QR de récupération:",
@@ -322,19 +204,13 @@
   }
 
   // Fonction pour télécharger le fichier
-  function downloadFile() {
-    if (!downloadUrl) return;
-
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = fileInfo.name || "fichier_recu";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+  function downloadFile(): void {
+    if (!downloadUrl || !fileInfo) return;
+    downloadFileUtil(downloadUrl, fileInfo.name);
   }
 
   // Fonction pour réinitialiser
-  function reset() {
+  function reset(): void {
     stopScanning();
     fileInfo = null;
     recoveryQRCode = "";
@@ -354,7 +230,7 @@
   // Initialize canvas context when canvas is mounted
   $effect(() => {
     if (canvas) {
-      canvasContext = canvas.getContext("2d", { willReadFrequently: true });
+      canvasContext = initializeCanvas(canvas);
     }
 
     // Cleanup on component destroy

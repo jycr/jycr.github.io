@@ -1,146 +1,102 @@
-<script>
+<script lang="ts">
   import { tick } from "svelte";
-  import QRCode from "qrcode";
-  import { scanImageData } from "@undecaf/zbar-wasm";
+  import type {
+    FileChunk,
+    ErrorCorrectionLevel,
+    TransmissionMode,
+    RecoveryQRData,
+    ScannedSymbol,
+  } from "./types";
+  import {
+    QR_CAPACITY,
+    splitFileIntoChunks,
+    generateFileInfoQRCode,
+    generateMultipleQRCodes,
+    validateChunkSize as validateChunkSizeService,
+    getChunksToTransmit,
+  } from "./senderService";
+  import {
+    startCameraStream,
+    stopCameraStream,
+    scanVideoFrame,
+    initializeCanvas,
+  } from "./scannerService";
   import { bytesToHex } from "./commons";
 
-  // QR Code capacity limits (in bytes) for binary data based on error correction level
-  // These are approximate values for QR code version 40 (largest)
-  // Format binaire pur (pas de base64) : SHA1(20) + chunkIndex(1-3 octets) = 21-23 octets de header
-  // Le totalChunks est dans le QR d'info initial (pas dans chaque chunk)
-  const QR_CAPACITY = {
-    L: 2953, // Low (7% error correction)
-    M: 2331, // Medium (15% error correction)
-    Q: 1663, // Quartile (25% error correction)
-    H: 1273, // High (30% error correction)
-  };
-
-  let selectedFile = $state(null);
-  let fileChunks = $state([]);
-  let fileHash = $state(null); // Stocke maintenant un Uint8Array de 20 octets
-  let isTransmitting = $state(false);
-  let currentChunkIndex = $state(0);
-  let qrCodeUrl = $state("");
-  let qrCodeUrls = $state([]); // Tableau pour plusieurs QR codes
-  let canvas = $state();
-  let videoElement = $state();
-  let canvasContext;
-  let scannerActive = $state(false);
-  let missingChunks = $state([]);
-  let transmissionMode = $state("all"); // 'all' or 'recovery'
+  let selectedFile = $state<File | null>(null);
+  let fileChunks = $state<FileChunk[]>([]);
+  let fileHash = $state<Uint8Array | null>(null);
+  let isTransmitting = $state<boolean>(false);
+  let currentChunkIndex = $state<number>(0);
+  let qrCodeUrl = $state<string>("");
+  let qrCodeUrls = $state<string[]>([]);
+  let canvas: HTMLCanvasElement | undefined = undefined;
+  let videoElement: HTMLVideoElement | undefined = undefined;
+  let canvasContext: CanvasRenderingContext2D | undefined = undefined;
+  let scannerActive = $state<boolean>(false);
+  let missingChunks = $state<number[]>([]);
+  let transmissionMode = $state<TransmissionMode>("all");
 
   // Configurable parameters
-  let chunkSize = $state(1400); // Maximum data size per QR code (in bytes) - reduced default
-  let transmissionSpeed = $state(100); // Milliseconds between each QR code
-  let errorCorrectionLevel = $state("M"); // L, M, Q, H
-  let numberOfQRCodes = $state(1); // Nombre de QR codes à afficher simultanément
-  let totalChunks = $state(0);
-  let transmittedChunks = $state(new Set());
-  let infoQRCode = $state(""); // QR code initial avec les métadonnées
-  let startTransmissionButton;
-  let stopTransmissionButton;
+  let chunkSize = $state<number>(1400);
+  let transmissionSpeed = $state<number>(100);
+  let errorCorrectionLevel = $state<ErrorCorrectionLevel>("M");
+  let numberOfQRCodes = $state<number>(1);
+  let totalChunks = $state<number>(0);
+  let transmittedChunks = $state<Set<number>>(new Set());
+  let infoQRCode = $state<string>("");
+  let startTransmissionButton: HTMLButtonElement | undefined = undefined;
+  let stopTransmissionButton: HTMLButtonElement | undefined = undefined;
 
   // Get maximum chunk size based on error correction level
-  function getMaxChunkSize() {
-    // Format binaire optimisé: SHA1(20) + chunkIndex(1-3 octets selon totalChunks)
-    // On utilise le pire cas (3 octets) pour le calcul
-    // Transport direct en binaire (plus de base64 !)
-    const binaryHeader = 23; // SHA1(20) + index(3 max)
+  function getMaxChunkSize(): number {
+    const binaryHeader = 23;
     return QR_CAPACITY[errorCorrectionLevel] - binaryHeader;
   }
 
   // Validate and adjust chunk size
-  function validateChunkSize() {
-    const maxSize = getMaxChunkSize();
-    if (chunkSize > maxSize) {
-      chunkSize = maxSize;
+  function validateChunkSize(): void {
+    const result = validateChunkSizeService(chunkSize, errorCorrectionLevel);
+    if (result.wasAdjusted) {
+      chunkSize = result.adjustedSize;
       alert(
-        `Chunk size adjusted to ${maxSize} bytes to fit in QR code with ${errorCorrectionLevel} error correction.`
+        `Chunk size adjusted to ${result.adjustedSize} bytes to fit in QR code with ${errorCorrectionLevel} error correction.`
       );
     }
   }
 
-  // Fonction pour calculer le hash SHA-1 d'un fichier (20 octets au lieu de 32 pour SHA-256)
-  async function calculateSHA1(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest("SHA-1", arrayBuffer);
-    return new Uint8Array(hashBuffer); // Retourne directement les bytes
-  }
-
   // Fonction pour découper le fichier en chunks
-  async function processFile() {
+  async function processFile(): Promise<void> {
     if (!selectedFile) return;
 
-    // Calculer le hash du fichier (SHA1 = 20 octets)
-    fileHash = await calculateSHA1(selectedFile);
-
-    // Lire le fichier
-    const arrayBuffer = await selectedFile.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // Découper en chunks avec format binaire optimisé
-    fileChunks = [];
-    totalChunks = Math.ceil(uint8Array.length / chunkSize);
-
-    // Déterminer le nombre d'octets nécessaires pour l'index
-    let indexBytes = 1; // Par défaut 1 octet (max 255)
-    if (totalChunks > 255) indexBytes = 2; // 2 octets (max 65535)
-    if (totalChunks > 65535) indexBytes = 3; // 3 octets (max 16777215)
-
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, uint8Array.length);
-      const chunkData = uint8Array.slice(start, end);
-
-      // Format binaire optimisé: [SHA1(20)][chunkIndex(1-3 octets)][data]
-      const binaryChunk = new Uint8Array(20 + indexBytes + chunkData.length);
-      binaryChunk.set(fileHash, 0); // SHA1: 20 octets
-
-      // Encoder l'index sur indexBytes octets (big endian)
-      for (let j = 0; j < indexBytes; j++) {
-        binaryChunk[20 + j] = (i >> (8 * (indexBytes - 1 - j))) & 0xff;
-      }
-
-      binaryChunk.set(chunkData, 20 + indexBytes); // Les données du chunk
-
-      // Pas d'encodage base64 ! On garde le binaire brut
-      fileChunks.push({
-        binaryData: binaryChunk, // Format binaire pur (Uint8Array)
-        chunkIndex: i, // Gardé pour l'affichage/debug
-        fileName: selectedFile.name, // Gardé pour l'info QR
-      });
-    }
+    const result = await splitFileIntoChunks(selectedFile, chunkSize);
+    fileHash = result.fileHash;
+    fileChunks = result.chunks;
+    totalChunks = result.chunks.length;
 
     // Générer le QR code d'information initial
     await generateInfoQRCode();
   }
 
   // Fonction pour générer le QR code d'information initial
-  async function generateInfoQRCode() {
-    const infoData = {
-      type: "fileInfo",
-      fileHash: bytesToHex(fileHash), // SHA1 en hex pour le JSON
-      fileName: selectedFile.name,
-      fileSize: selectedFile.size,
-      totalChunks: totalChunks,
-      chunkSize: chunkSize,
-    };
+  async function generateInfoQRCode(): Promise<void> {
+    if (!selectedFile || !fileHash) return;
 
     try {
-      infoQRCode = await QRCode.toDataURL(JSON.stringify(infoData), {
-        errorCorrectionLevel: "M",
-        margin: 1,
-        width: 800,
-      });
+      infoQRCode = await generateFileInfoQRCode(
+        selectedFile,
+        fileHash,
+        totalChunks,
+        chunkSize
+      );
     } catch (error) {
       console.error("Erreur lors de la génération du QR d'info:", error);
     }
   }
 
   // Function to start transmission
-  async function startTransmission() {
+  async function startTransmission(): Promise<void> {
     console.log("Starting transmission...");
-    // Validate chunk size before starting
     validateChunkSize();
 
     if (fileChunks.length === 0) {
@@ -152,103 +108,72 @@
     transmittedChunks.clear();
     transmitNextChunk();
 
-    // Mettre le focus sur le bouton Stop
     await tick();
     stopTransmissionButton?.focus();
   }
 
   // Function to transmit the next chunk
-  async function transmitNextChunk() {
+  async function transmitNextChunk(): Promise<void> {
     if (!isTransmitting) return;
 
-    let chunksToTransmit = [];
-
-    if (transmissionMode === "recovery" && missingChunks.length > 0) {
-      // Recovery mode: send only missing chunks
-      chunksToTransmit = missingChunks
-        .map((idx) => fileChunks[idx])
-        .filter(Boolean);
-    } else {
-      // Normal mode: send all chunks
-      chunksToTransmit = fileChunks;
-    }
+    const chunksToTransmit = getChunksToTransmit(
+      fileChunks,
+      missingChunks,
+      transmissionMode
+    );
 
     if (chunksToTransmit.length === 0) {
       isTransmitting = false;
       return;
     }
 
-    // Check if we've transmitted all chunks (don't loop)
+    // Check if we've transmitted all chunks
     if (currentChunkIndex >= chunksToTransmit.length) {
       isTransmitting = false;
       startRecoveryScanner();
       return;
     }
 
-    // Générer plusieurs QR codes simultanément
-    qrCodeUrls = [];
-    const qrPromises = [];
-
+    // Préparer les chunks à encoder
+    const chunksToEncode: FileChunk[] = [];
     for (
       let i = 0;
       i < numberOfQRCodes && currentChunkIndex + i < chunksToTransmit.length;
       i++
     ) {
       const chunk = chunksToTransmit[currentChunkIndex + i];
-
-      try {
-        // Generate QR code avec données binaires pures (Uint8Array)
-        // La librairie qrcode nécessite un format de segment pour le mode byte
-        const segments = [
-          {
-            data: chunk.binaryData,
-            mode: "byte",
-          },
-        ];
-
-        const qrPromise = QRCode.toDataURL(segments, {
-          errorCorrectionLevel: errorCorrectionLevel,
-          margin: 1,
-          width: 1000,
-          color: {
-            dark: "#000000",
-            light: "#FFFFFF",
-          },
-        });
-
-        qrPromises.push(qrPromise);
-        transmittedChunks.add(chunk.chunkIndex);
-      } catch (error) {
-        console.error("Error generating QR code:", error);
-      }
+      chunksToEncode.push(chunk);
+      transmittedChunks.add(chunk.chunkIndex);
     }
 
     try {
-      qrCodeUrls = await Promise.all(qrPromises);
+      qrCodeUrls = await generateMultipleQRCodes(
+        chunksToEncode,
+        errorCorrectionLevel
+      );
       currentChunkIndex += numberOfQRCodes;
 
-      // Schedule next batch of chunks
       setTimeout(transmitNextChunk, transmissionSpeed);
     } catch (error) {
       console.error("Error generating QR codes:", error);
+      const err = error as Error;
       alert(
-        `Error generating QR codes: ${error.message}\n\nTry reducing the chunk size or changing the error correction level.`
+        `Error generating QR codes: ${err.message}\n\nTry reducing the chunk size or changing the error correction level.`
       );
       isTransmitting = false;
     }
   }
 
   // Fonction pour arrêter la transmission
-  function stopTransmission() {
+  function stopTransmission(): void {
     console.log("Stopping transmission...");
     isTransmitting = false;
   }
 
   // Fonction pour scanner le QR code de récupération
-  async function startRecoveryScanner() {
+  async function startRecoveryScanner(): Promise<void> {
     scannerActive = true;
 
-    // Wait for DOM elements to be mounted
     await tick();
     await tick();
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -259,19 +184,14 @@
       return;
     }
 
-    // Initialize canvas context if not already done
     if (canvas && !canvasContext) {
       canvas.width = 400;
       canvas.height = 300;
-      canvasContext = canvas.getContext("2d", { willReadFrequently: true });
+      canvasContext = initializeCanvas(canvas);
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      videoElement.srcObject = stream;
-      videoElement.play();
+      await startCameraStream(videoElement, { facingMode: "environment" });
       requestAnimationFrame(scanRecoveryQR);
     } catch (error) {
       console.error("Erreur d'accès à la caméra:", error);
@@ -281,47 +201,34 @@
   }
 
   // Fonction pour scanner le QR de récupération
-  async function scanRecoveryQR() {
-    if (!scannerActive) return;
+  async function scanRecoveryQR(): Promise<void> {
+    if (!scannerActive || !videoElement || !canvas || !canvasContext) return;
 
-    if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
-      canvasContext.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-      const imageData = canvasContext.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
+    const symbols = await scanVideoFrame(videoElement, canvas, canvasContext);
 
-      try {
-        const symbols = await scanImageData(imageData);
-
-        if (symbols && symbols.length > 0) {
-          for (const symbol of symbols) {
-            const data = symbol.decode();
-            if (data) {
-              try {
-                const recoveryData = JSON.parse(data);
-                if (
-                  recoveryData.type === "recovery" &&
-                  recoveryData.fileHash === bytesToHex(fileHash)
-                ) {
-                  missingChunks = recoveryData.missingChunks;
-                  stopRecoveryScanner();
-                  transmissionMode = "recovery";
-                  alert(
-                    `QR de récupération scanné ! ${missingChunks.length} chunks manquants détectés.`
-                  );
-                  return;
-                }
-              } catch (e) {
-                // Pas un QR de récupération valide
-              }
+    if (symbols.length > 0) {
+      for (const symbol of symbols) {
+        const data = symbol.decode();
+        if (data) {
+          try {
+            const recoveryData: RecoveryQRData = JSON.parse(data);
+            if (
+              recoveryData.type === "recovery" &&
+              fileHash &&
+              recoveryData.fileHash === bytesToHex(fileHash)
+            ) {
+              missingChunks = recoveryData.missingChunks;
+              stopRecoveryScanner();
+              transmissionMode = "recovery";
+              alert(
+                `QR de récupération scanné ! ${missingChunks.length} chunks manquants détectés.`
+              );
+              return;
             }
+          } catch (e) {
+            // Pas un QR de récupération valide
           }
         }
-      } catch (error) {
-        console.error("Erreur de scan zbar:", error);
       }
     }
 
@@ -329,16 +236,15 @@
   }
 
   // Fonction pour arrêter le scanner
-  function stopRecoveryScanner() {
+  function stopRecoveryScanner(): void {
     scannerActive = false;
-    if (videoElement && videoElement.srcObject) {
-      videoElement.srcObject.getTracks().forEach((track) => track.stop());
-      videoElement.srcObject = null;
+    if (videoElement) {
+      stopCameraStream(videoElement);
     }
   }
 
   // Fonction pour réinitialiser
-  function reset() {
+  function reset(): void {
     stopTransmission();
     stopRecoveryScanner();
     selectedFile = null;
@@ -354,11 +260,11 @@
   }
 
   // Gestionnaire de sélection de fichier
-  async function handleFileSelect(event) {
-    selectedFile = event.target.files[0];
+  async function handleFileSelect(event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement;
+    selectedFile = target.files?.[0] || null;
     if (selectedFile) {
       await processFile();
-      // Mettre le focus sur le bouton Start après un court délai
       await tick();
       startTransmissionButton?.focus();
     }
@@ -371,11 +277,9 @@
 
   // Reprocess file when chunk size or error correction level changes
   $effect(() => {
-    // Watch these values to trigger reprocessing
     chunkSize;
     errorCorrectionLevel;
 
-    // Only reprocess if a file is already selected
     if (selectedFile) {
       processFile();
     }
@@ -384,7 +288,7 @@
   // Initialize canvas context when canvas is mounted
   $effect(() => {
     if (canvas) {
-      canvasContext = canvas.getContext("2d");
+      canvasContext = initializeCanvas(canvas);
     }
   });
 </script>
