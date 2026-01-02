@@ -6,7 +6,8 @@
 
   <div class="intro">
     <p>
-      This application allows you to transfer files between two devices using QR codes.
+      This application allows you to transfer files between two devices using QR
+      codes.
     </p>
   </div>
 
@@ -14,18 +15,24 @@
     <div class="card">
       <h2>📤 Sender</h2>
       <p>Send a file by generating a series of QR codes</p>
-      <a href="/sender.html" class="button primary">Open Sender</a>
+      <a href="/qrcode/dist/sender.html" class="button primary">Open Sender</a>
     </div>
 
     <div class="card">
       <h2>📥 Receiver</h2>
       <p>Receive a file by scanning QR codes</p>
-      <a href="/receiver.html" class="button secondary">Open Receiver</a>
+      <a href="/qrcode/dist/receiver.html" class="button secondary"
+        >Open Receiver</a
+      >
     </div>
   </div>
 
   <div style="text-align: center; margin: 2rem 0;">
-    <a href="/guide.html" class="button" style="background: #764ba2; color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 6px; display: inline-block;">
+    <a
+      href="/qrcode/dist/guide.html"
+      class="button"
+      style="background: #764ba2; color: white; text-decoration: none; padding: 0.75rem 2rem; border-radius: 6px; display: inline-block;"
+    >
       📖 Complete Usage Guide
     </a>
   </div>
@@ -33,10 +40,20 @@
   <div class="info">
     <h3>How does it work?</h3>
     <ol>
-      <li>On the sender device, open the <strong>Sender</strong> page and select a file</li>
-      <li>On the receiver device, open the <strong>Receiver</strong> page and start scanning</li>
-      <li>Place the receiver's camera facing the QR codes displayed by the sender</li>
-      <li>Chunks will be progressively received and the file will be reconstructed</li>
+      <li>
+        On the sender device, open the <strong>Sender</strong> page and select a
+        file
+      </li>
+      <li>
+        On the receiver device, open the <strong>Receiver</strong> page and start
+        scanning
+      </li>
+      <li>
+        Place the receiver's camera facing the QR codes displayed by the sender
+      </li>
+      <li>
+        Chunks will be progressively received and the file will be reconstructed
+      </li>
       <li>If chunks are missing, generate a recovery QR from the receiver</li>
       <li>Scan this QR on the sender to retransmit only the missing chunks</li>
     </ol>
@@ -48,7 +65,10 @@
     max-width: 900px;
     margin: 0 auto;
     padding: 2rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 
   h1 {
@@ -78,13 +98,15 @@
     border-radius: 12px;
     padding: 2rem;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
   }
 
   .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
   }
 
   .card h2 {
@@ -109,7 +131,7 @@
   }
 
   .button.primary {
-    background-color: #4CAF50;
+    background-color: #4caf50;
   }
 
   .button.primary:hover {
@@ -117,7 +139,7 @@
   }
 
   .button.secondary {
-    background-color: #2196F3;
+    background-color: #2196f3;
   }
 
   .button.secondary:hover {
