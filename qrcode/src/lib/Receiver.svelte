@@ -276,7 +276,7 @@
             {#each Array(fileItem.info.totalChunks) as _, i}
               <div
                 class="chunk-box"
-                class:received={fileItem.hasChunks(i)}
+                class:received={statsTrigger && fileItem.hasChunks(i)}
                 title="Chunk {i + 1}/{fileItem.info.totalChunks}"
               ></div>
             {/each}
