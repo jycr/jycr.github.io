@@ -145,6 +145,7 @@
 
   // Function to start transmission
   async function startTransmission() {
+    console.log("Starting transmission...");
     // Validate chunk size before starting
     validateChunkSize();
 
@@ -245,6 +246,7 @@
 
   // Fonction pour arrêter la transmission
   function stopTransmission() {
+    console.log("Stopping transmission...");
     isTransmitting = false;
   }
 
@@ -468,21 +470,26 @@
   </header>
 
   <section class="main-content">
-    {#if qrCodeUrls.length > 0}
-      <button class="qr-display" type="button" onclick={stopTransmission}>
-        {#each qrCodeUrls as qrUrl, index}
-          <img src={qrUrl} alt="QR Code {index + 1}" />
-        {/each}
-      </button>
-    {:else if infoQRCode}
+    {#if !isTransmitting && infoQRCode}
       <button
-        class="qr-display"
         type="button"
+        class="qr-display"
         bind:this={startTransmissionButton}
         onclick={startTransmission}
       >
         {#each Array(numberOfQRCodes) as _, index}
           <img src={infoQRCode} alt="QR Code d'information {index + 1}" />
+        {/each}
+      </button>
+    {:else if isTransmitting && qrCodeUrls.length > 0}
+      <button
+        type="button"
+        class="qr-display"
+        bind:this={stopTransmissionButton}
+        onclick={stopTransmission}
+      >
+        {#each qrCodeUrls as qrUrl, index}
+          <img src={qrUrl} alt="QR Code {index + 1}" />
         {/each}
       </button>
     {/if}
@@ -692,29 +699,29 @@
 
   /* Mode portrait : largeur à 100vw */
   @media (orientation: portrait) {
-    .qr-display img {
+    .qr-display {
       width: 100vw;
-      max-width: 100vw;
-      height: auto;
-      max-height: none;
-    }
 
-    .qr-grid {
-      grid-template-columns: repeat(2, 1fr);
+      img {
+        width: 100vw;
+        max-width: 100vw;
+        height: auto;
+        max-height: none;
+      }
     }
   }
 
   /* Mode paysage : hauteur à 100vh */
   @media (orientation: landscape) {
-    .qr-display img {
+    .qr-display {
       height: 100vh;
-      max-height: 100vh;
-      width: auto;
-      max-width: none;
-    }
 
-    .qr-grid {
-      grid-template-columns: repeat(3, 1fr);
+      img {
+        height: 100vh;
+        max-height: 100vh;
+        width: auto;
+        max-width: none;
+      }
     }
   }
 
