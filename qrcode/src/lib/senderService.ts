@@ -225,14 +225,14 @@ export async function generateRecoveryQRCode(
  * @returns Chunks à transmettre
  */
 export function getChunksToTransmit(
-  allChunks: FileChunk[],
-  missingChunks: number[],
-  mode: 'all' | 'recovery'
+	allChunks: FileChunk[],
+	missingChunks: number[],
+	mode: 'all' | 'recovery'
 ): FileChunk[] {
-  if (mode === 'recovery' && missingChunks.length > 0) {
-    return missingChunks
-      .map((idx) => allChunks[idx])
-      .filter((chunk): chunk is FileChunk => chunk !== undefined);
-  }
-  return allChunks;
+	if (mode === 'recovery' && missingChunks.length > 0) {
+		return missingChunks
+			.map((idx) => allChunks[idx])
+			.filter((chunk): chunk is FileChunk => chunk !== undefined);
+	}
+	return allChunks;
 }
