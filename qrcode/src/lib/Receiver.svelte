@@ -1,19 +1,8 @@
 <script lang="ts">
   import { tick } from "svelte";
   import QRCode from "qrcode";
-  import type {
-    FileInfo,
-    ScanningStats,
-    ScannedSymbol,
-  } from "./types";
-  import {
-    parseFileInfoQRCode,
-    parseChunk,
-    assembleFile,
-    findMissingChunks,
-    isFileComplete,
-    downloadFile as downloadFileUtil,
-  } from "./receiverService";
+  import type { FileInfo, ScanningStats, ScannedSymbol } from "./types";
+  import { parseFileInfoQRCode, parseChunk, FileItem } from "./receiverService";
   import {
     startCameraStream,
     stopCameraStream,
@@ -27,23 +16,22 @@
   let canvas: HTMLCanvasElement | undefined = undefined;
   let canvasContext: CanvasRenderingContext2D | undefined = undefined;
   let isScanning = $state<boolean>(false);
-  let fileInfo = $state<FileInfo | null>(null);
+  let fileItem = $state<FileItem | null>(null);
   let recoveryQRCode = $state<string>("");
   let downloadUrl = $state<string>("");
 
   // Statistics
   let missingChunks = $state<number[]>([]);
-  let lastChunkTime = $state<number>(Date.now());
-  let scanningStats = $state<ScanningStats>({
-    totalScanned: 0,
-    duplicates: 0,
-    errors: 0,
-  });
+
+  // Trigger pour forcer la réactivité des stats
+  let statsTrigger = $state(0);
+
+  function refreshStats(): void {
+    statsTrigger++;
+  }
 
   // Reactive derived values for Svelte 5
-  let isComplete = $derived<boolean>(
-    fileInfo !== null && isFileComplete(fileInfo)
-  );
+  let isComplete = $derived<boolean>(fileItem?.isFileComplete() ?? false);
 
   // Function to start scanning
   async function startScanning(): Promise<void> {
@@ -113,39 +101,30 @@
   function processQRCode(symbol: ScannedSymbol): void {
     // Essayer de parser comme QR d'info d'abord
     try {
-      fileInfo = parseFileInfoQRCode(symbol);
-      console.log("File info received:", fileInfo);
+      const fileInfo = parseFileInfoQRCode(symbol);
+
+      if (!fileItem?.isInfoEquals(fileInfo)) {
+        fileItem = new FileItem(fileInfo);
+        console.log("Initialized file reception:", fileItem.info);
+      }
       return;
     } catch (e) {
       // Data is not JSON, continue to process as binary chunk
     }
 
-    scanningStats.totalScanned++;
+    // Si on n'a pas encore les infos du fichier, ignorer les chunks
+    if (!fileItem) {
+      console.log("Waiting for file info QR code first...");
+      return;
+    }
+
+    fileItem.stats.total++;
+    refreshStats();
 
     try {
-      // Si on n'a pas encore les infos du fichier, ignorer les chunks
-      if (!fileInfo) {
-        console.log("Waiting for file info QR code first...");
-        return;
-      }
-
-      const chunk = parseChunk(symbol, fileInfo);
-
-      // Vérifier si on a déjà ce chunk
-      if (fileInfo.chunks[chunk.index] !== undefined) {
-        scanningStats.duplicates++;
-        return;
-      }
-
-      fileInfo.receivedCount++;
-
-      // Stocker le chunk (en bytes bruts)
-      fileInfo.chunks[chunk.index] = chunk.data;
-      lastChunkTime = Date.now();
-
-      console.log(
-        `Received chunk ${chunk.index + 1}/${fileInfo.totalChunks} (${chunk.data.length} bytes)`
-      );
+      const chunk = parseChunk(symbol, fileItem.info);
+      fileItem.addChunk(chunk);
+      refreshStats();
 
       // Vérifier si tous les chunks sont reçus
       if (isComplete) {
@@ -153,18 +132,19 @@
         assembleReceivedFile();
       }
     } catch (error) {
-      scanningStats.errors++;
+      fileItem.stats.errors++;
+      refreshStats();
       console.error("Error processing QR code:", error);
     }
   }
 
   // Fonction pour assembler le fichier à partir des chunks
   async function assembleReceivedFile(): Promise<void> {
-    if (!fileInfo) return;
+    if (!fileItem) return;
 
     console.log("Assembling file...");
 
-    const result = await assembleFile(fileInfo);
+    const result = await fileItem.assembleFile();
 
     if (!result.success) {
       alert(`⚠ Error: ${result.error}`);
@@ -178,9 +158,9 @@
 
   // Fonction pour générer le QR code de récupération
   async function generateRecoveryQR(): Promise<void> {
-    if (!fileInfo) return;
+    if (!fileItem) return;
 
-    missingChunks = findMissingChunks(fileInfo);
+    missingChunks = fileItem.findMissingChunks();
 
     if (missingChunks.length === 0) {
       alert("All chunks have been received!");
@@ -191,9 +171,9 @@
       // Convertir le hash hex en Uint8Array pour le service
       const hashBytes = new Uint8Array(20);
       for (let i = 0; i < 20; i++) {
-        hashBytes[i] = parseInt(fileInfo.hash.slice(i * 2, i * 2 + 2), 16);
+        hashBytes[i] = parseInt(fileItem.info.hash.slice(i * 2, i * 2 + 2), 16);
       }
-      
+
       recoveryQRCode = await generateRecoveryQRCode(hashBytes, missingChunks);
     } catch (error) {
       console.error(
@@ -205,22 +185,22 @@
 
   // Fonction pour télécharger le fichier
   function downloadFile(): void {
-    if (!downloadUrl || !fileInfo) return;
-    downloadFileUtil(downloadUrl, fileInfo.name);
+    if (!downloadUrl || !fileItem) return;
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = fileItem.info.name || "fichier_recu";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   // Fonction pour réinitialiser
   function reset(): void {
     stopScanning();
-    fileInfo = null;
+    fileItem = null;
     recoveryQRCode = "";
     downloadUrl = "";
     missingChunks = [];
-    scanningStats = {
-      totalScanned: 0,
-      duplicates: 0,
-      errors: 0,
-    };
 
     if (downloadUrl) {
       URL.revokeObjectURL(downloadUrl);
@@ -272,31 +252,32 @@
       </div>
     {/if}
 
-    {#if fileInfo}
+    {#if fileItem}
       <div class="card">
         <h2>2. Reception Progress</h2>
         <div class="file-info">
-          <p><strong>Fichier:</strong> {fileInfo.name}</p>
+          <p><strong>Fichier:</strong> {fileItem.info.name}</p>
           <p>
             <strong>Hash:</strong>
-            <code>{fileInfo.hash}</code>
+            <code>{fileItem.info.hash}</code>
           </p>
         </div>
 
         <div class="progress-section">
           <p class="progress-text">
-            {fileInfo.receivedCount} / {fileInfo.totalChunks} chunks received ({(
-              (fileInfo.receivedCount / fileInfo.totalChunks) *
-              100
+            {statsTrigger && fileItem.stats.count} / {fileItem.info.totalChunks}
+            chunks received ({(
+              (statsTrigger &&
+                fileItem.stats.count / fileItem.info.totalChunks) * 100
             ).toFixed(1)}%)
           </p>
 
           <div class="chunks-grid">
-            {#each Array(fileInfo.totalChunks) as _, i}
+            {#each Array(fileItem.info.totalChunks) as _, i}
               <div
                 class="chunk-box"
-                class:received={fileInfo.chunks[i] !== undefined}
-                title="Chunk {i + 1}/{fileInfo.totalChunks}"
+                class:received={fileItem.hasChunks(i)}
+                title="Chunk {i + 1}/{fileItem.info.totalChunks}"
               ></div>
             {/each}
           </div>
@@ -305,15 +286,21 @@
         <div class="stats">
           <div class="stat-item">
             <span class="stat-label">Total scanned:</span>
-            <span class="stat-value">{scanningStats.totalScanned}</span>
+            <span class="stat-value"
+              >{statsTrigger && fileItem.stats.total}</span
+            >
           </div>
           <div class="stat-item">
             <span class="stat-label">Duplicates:</span>
-            <span class="stat-value">{scanningStats.duplicates}</span>
+            <span class="stat-value"
+              >{statsTrigger && fileItem.stats.duplicates}</span
+            >
           </div>
           <div class="stat-item">
             <span class="stat-label">Errors:</span>
-            <span class="stat-value">{scanningStats.errors}</span>
+            <span class="stat-value"
+              >{statsTrigger && fileItem.stats.errors}</span
+            >
           </div>
         </div>
 
@@ -325,7 +312,7 @@
   </section>
 
   <footer class="card">
-    {#if fileInfo && !isComplete}
+    {#if fileItem && !isComplete}
       <div class="card">
         <h2>3. Missing chunks recovery</h2>
         <p>
@@ -358,7 +345,7 @@
       <div class="card">
         <h2>4. Download file</h2>
         <button onclick={downloadFile} class="download-button">
-          💾 Download {fileInfo.name}
+          💾 Download {fileItem.info.name}
         </button>
       </div>
     {/if}

@@ -1,8 +1,4 @@
 /**
- * Types et interfaces pour l'application de transfert de fichiers par QR Code
- */
-
-/**
  * Niveaux de correction d'erreur pour les QR codes
  */
 export type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
@@ -22,17 +18,12 @@ export interface QRCapacityMap {
 	H: number; // High (30% correction)
 }
 
-/**
- * Informations sur un fichier à transmettre
- */
 export interface FileInfo {
 	hash: string;        // Hash SHA-1 du fichier en hexadécimal
 	name: string;        // Nom du fichier
 	size: number;        // Taille du fichier en octets
 	totalChunks: number; // Nombre total de chunks
-	indexBytes: number;  // Nombre d'octets utilisés pour encoder l'index
-	chunks: (Uint8Array | undefined)[]; // Tableau des chunks reçus
-	receivedCount: number; // Nombre de chunks reçus
+	indexBytes: number;  // Nombre d'octets utilisés pour encoder l'index des chunks
 }
 
 /**
@@ -77,8 +68,13 @@ export interface ParsedChunk {
  * Statistiques de scan
  */
 export interface ScanningStats {
-	totalScanned: number;
+	/** Total number of QR codes scanned */
+	total: number;
+	/** Number of unique QR codes processed */
+	count: number;
+	/** Number of duplicate QR codes detected */
 	duplicates: number;
+	/** Number of errors encountered during scanning */
 	errors: number;
 }
 

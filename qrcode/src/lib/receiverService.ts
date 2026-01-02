@@ -8,6 +8,7 @@ import type {
 	ParsedChunk,
 	ScannedSymbol,
 	FileAssemblyResult,
+	ScanningStats,
 } from './types';
 import {
 	bytesToHex,
@@ -44,8 +45,6 @@ export function parseFileInfoQRCode(symbol: ScannedSymbol): FileInfo {
 		size: jsonData.fileSize,
 		totalChunks: jsonData.totalChunks,
 		indexBytes,
-		chunks: [],
-		receivedCount: 0,
 	};
 }
 
@@ -92,97 +91,146 @@ export function parseChunk(symbol: ScannedSymbol, fileInfo: FileInfo): ParsedChu
 }
 
 /**
- * Assemble tous les chunks reçus pour reconstituer le fichier
- * @param fileInfo - Informations du fichier avec tous les chunks
- * @returns Résultat de l'assemblage avec les données du fichier ou une erreur
+ * File item representing a file being received
  */
-export async function assembleFile(fileInfo: FileInfo): Promise<FileAssemblyResult> {
-	try {
-		// Vérifier que tous les chunks sont présents
-		const chunks: Uint8Array[] = [];
-		for (let i = 0; i < fileInfo.totalChunks; i++) {
-			if (fileInfo.chunks[i] === undefined) {
+export class FileItem {
+	/** Array of received chunks */
+	chunks: (Uint8Array | undefined)[];
+	/** Scanning statistics */
+	stats: ScanningStats;
+
+	/**
+	 * 
+	 * @param info Information about the file
+	 */
+	constructor(
+		public readonly info: FileInfo,
+	) {
+		this.info = info;
+		this.chunks = new Array(info.totalChunks);
+		this.stats = {
+			total: 0,
+			count: 0,
+			duplicates: 0,
+			errors: 0,
+		};
+	}
+
+	hasChunks(i: number) {
+		return this.chunks[i] !== undefined;
+	}
+
+	/**
+	 * Compare if the given FileInfo is different from this FileItem's info
+	 */
+	isInfoEquals(fileInfo: FileInfo): boolean {
+		return JSON.stringify(this.info) === JSON.stringify(fileInfo);
+	}
+
+	/**
+	 * Add a chunk to the file
+	 * @param chunk - The parsed chunk to add
+	 */
+	addChunk(chunk: ParsedChunk): void {
+		// Vérifier si on a déjà ce chunk
+		if (this.chunks[chunk.index] !== undefined) {
+			this.stats.duplicates++;
+			return;
+		}
+
+		this.stats.count++;
+
+		// Stocker le chunk (en bytes bruts)
+		this.chunks[chunk.index] = chunk.data;
+
+		console.log(
+			`Add chunk ${chunk.index + 1}/${this.info.totalChunks} (${chunk.data.length} bytes)`
+		);
+	}
+
+	/**
+	 * Get progress percentage
+	 */
+	getProgressPercent(): number {
+		return (this.stats.count / this.info.totalChunks) * 100;
+	}
+
+	/**
+	 * Identifie les chunks manquants
+	 * @param fileInfo - Informations du fichier
+	 * @returns Liste des indices des chunks manquants
+	 */
+	findMissingChunks(): number[] {
+		const missing: number[] = [];
+		for (let i = 0; i < this.info.totalChunks; i++) {
+			if (this.chunks[i] === undefined) {
+				missing.push(i);
+			}
+		}
+		return missing;
+	}
+
+	/**
+	 * Check if all chunks have been received
+	 */
+	isFileComplete(): boolean {
+		return this.stats.count === this.info.totalChunks;
+	}
+
+	/**
+	 * Assemble all received chunks to reconstruct the file
+	 * @returns Result of the file assembly, including success status, file data, download URL, or error message
+	 */
+	async assembleFile(): Promise<FileAssemblyResult> {
+		try {
+			// Vérifier que tous les chunks sont présents
+			const chunks: Uint8Array[] = [];
+			for (let i = 0; i < this.info.totalChunks; i++) {
+				if (this.chunks[i] === undefined) {
+					return {
+						success: false,
+						error: `Missing chunk: ${i}`,
+					};
+				}
+				chunks.push(this.chunks[i]!);
+			}
+
+			// Calculer la taille totale
+			const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+			const fileData = new Uint8Array(totalSize);
+
+			// Copier tous les chunks dans le tableau final
+			let offset = 0;
+			for (const chunk of chunks) {
+				fileData.set(chunk, offset);
+				offset += chunk.length;
+			}
+
+			// Vérifier le hash
+			const calculatedHash = await calculateSHA1FromBytes(fileData);
+			const calculatedHashHex = bytesToHex(calculatedHash);
+
+			if (calculatedHashHex !== this.info.hash) {
 				return {
 					success: false,
-					error: `Missing chunk: ${i}`,
+					error: `Hash mismatch. Expected: ${this.info.hash}, Got: ${calculatedHashHex}`,
 				};
 			}
-			chunks.push(fileInfo.chunks[i]!);
-		}
 
-		// Calculer la taille totale
-		const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-		const fileData = new Uint8Array(totalSize);
+			// Créer un blob et une URL de téléchargement
+			const blob = new Blob([fileData]);
+			const downloadUrl = URL.createObjectURL(blob);
 
-		// Copier tous les chunks dans le tableau final
-		let offset = 0;
-		for (const chunk of chunks) {
-			fileData.set(chunk, offset);
-			offset += chunk.length;
-		}
-
-		// Vérifier le hash
-		const calculatedHash = await calculateSHA1FromBytes(fileData);
-		const calculatedHashHex = bytesToHex(calculatedHash);
-
-		if (calculatedHashHex !== fileInfo.hash) {
+			return {
+				success: true,
+				fileData,
+				downloadUrl,
+			};
+		} catch (error) {
 			return {
 				success: false,
-				error: `Hash mismatch. Expected: ${fileInfo.hash}, Got: ${calculatedHashHex}`,
+				error: error instanceof Error ? error.message : 'Unknown error',
 			};
 		}
-
-		// Créer un blob et une URL de téléchargement
-		const blob = new Blob([fileData]);
-		const downloadUrl = URL.createObjectURL(blob);
-
-		return {
-			success: true,
-			fileData,
-			downloadUrl,
-		};
-	} catch (error) {
-		return {
-			success: false,
-			error: error instanceof Error ? error.message : 'Unknown error',
-		};
 	}
-}
-
-/**
- * Identifie les chunks manquants
- * @param fileInfo - Informations du fichier
- * @returns Liste des indices des chunks manquants
- */
-export function findMissingChunks(fileInfo: FileInfo): number[] {
-	const missing: number[] = [];
-	for (let i = 0; i < fileInfo.totalChunks; i++) {
-		if (fileInfo.chunks[i] === undefined) {
-			missing.push(i);
-		}
-	}
-	return missing;
-}
-
-/**
- * Vérifie si tous les chunks ont été reçus
- * @param fileInfo - Informations du fichier
- * @returns true si tous les chunks sont reçus
- */
-export function isFileComplete(fileInfo: FileInfo): boolean {
-	return fileInfo.receivedCount === fileInfo.totalChunks;
-}
-
-/**
- * Télécharge un fichier assemblé
- * @param downloadUrl - URL du blob à télécharger
- * @param fileName - Nom du fichier
- */
-export function downloadFile(downloadUrl: string, fileName: string): void {
-	const a = document.createElement('a');
-	a.href = downloadUrl;
-	a.download = fileName || 'fichier_recu';
-	document.body.appendChild(a);
-	a.click();
-	document.body.removeChild(a);
 }
