@@ -2,6 +2,7 @@
   import { tick } from "svelte";
   import QRCode from "qrcode";
   import { scanImageData } from "@undecaf/zbar-wasm";
+  import { bytesToHex } from "./commons";
 
   // QR Code capacity limits (in bytes) for binary data based on error correction level
   // These are approximate values for QR code version 40 (largest)
@@ -64,13 +65,6 @@
     const arrayBuffer = await file.arrayBuffer();
     const hashBuffer = await crypto.subtle.digest("SHA-1", arrayBuffer);
     return new Uint8Array(hashBuffer); // Retourne directement les bytes
-  }
-
-  // Fonction utilitaire pour convertir un hash binaire en hex (pour affichage)
-  function bytesToHex(bytes) {
-    return Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
   }
 
   // Fonction pour découper le fichier en chunks
@@ -375,6 +369,18 @@
     validateChunkSize();
   });
 
+  // Reprocess file when chunk size or error correction level changes
+  $effect(() => {
+    // Watch these values to trigger reprocessing
+    chunkSize;
+    errorCorrectionLevel;
+
+    // Only reprocess if a file is already selected
+    if (selectedFile) {
+      processFile();
+    }
+  });
+
   // Initialize canvas context when canvas is mounted
   $effect(() => {
     if (canvas) {
@@ -423,13 +429,15 @@
           </span>
         </p>
         <p class="field">
-          <label for="transmissionSpeed">Transmission speed (ms):</label>
+          <label for="transmissionSpeed"
+            >Transmission speed ({transmissionSpeed} ms):</label
+          >
           <input
             id="transmissionSpeed"
-            type="number"
+            type="range"
             bind:value={transmissionSpeed}
-            min="100"
-            max="5000"
+            min="50"
+            max="1500"
             step="50"
           />
         </p>
