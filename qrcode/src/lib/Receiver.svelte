@@ -28,7 +28,6 @@
   let downloadUrl = $state("");
 
   // Statistics
-  let totalChunks = $state(0);
   let receivedCount = $state(0);
   let missingChunks = $state([]);
   let lastChunkTime = $state(Date.now());
@@ -39,10 +38,7 @@
   });
 
   // Reactive derived values for Svelte 5
-  let progress = $derived(
-    totalChunks > 0 ? (receivedCount / totalChunks) * 100 : 0
-  );
-  let isComplete = $derived(totalChunks > 0 && receivedCount === totalChunks);
+  let isComplete = $derived(fileInfo && receivedCount === fileInfo.totalChunks);
 
   // Function to start scanning
   async function startScanning() {
@@ -118,9 +114,10 @@
         if (symbols && symbols.length > 0) {
           console.log("symbols detected:", symbols);
           for (const symbol of symbols) {
-            const data = symbol.decode();
-            if (data && data.length > 0) {
-              processQRCode(data);
+            // Utiliser .data pour les données binaires brutes (Int8Array)
+            // symbol.decode() fait un décodage UTF-8 qui corrompt les bytes binaires
+            if (symbol?.data.length > 0) {
+              processQRCode(symbol);
             }
           }
         }
@@ -132,63 +129,62 @@
     requestAnimationFrame(scanQRCode);
   }
 
+  const START_JSON = "{".charCodeAt(0);
+
   // Fonction pour traiter les données du QR code
-  function processQRCode(data) {
-    console.log(
-      "QR code data received, type:",
-      typeof data,
-      "length:",
-      data.length
-    );
+  function processQRCode(symbol) {
+    if (symbol.data[0] === START_JSON) {
+      // Essayer de décoder comme JSON d'abord (pour le QR d'info)
+      try {
+        const jsonData = JSON.parse(symbol.decode());
+
+        // Check if this is file info (initial QR code)
+        if (jsonData.type === "fileInfo") {
+          fileInfo = {
+            hash: jsonData.fileHash, // SHA1 en hex
+            name: jsonData.fileName,
+            size: jsonData.fileSize,
+            totalChunks: jsonData.totalChunks,
+          };
+          console.log("File info received:", fileInfo);
+          return;
+        } else {
+          console.warn("Unknown JSON QR code type:", jsonData.type);
+          return;
+        }
+      } catch (e) {
+        // Data is not JSON, continue to process as binary chunk encoded in string
+      }
+    }
     scanningStats.totalScanned++;
 
     try {
-      // Essayer de décoder comme JSON d'abord (pour le QR d'info)
-      if (typeof data === "string") {
-        try {
-          const jsonData = JSON.parse(data);
-
-          // Check if this is file info (initial QR code)
-          if (jsonData.type === "fileInfo") {
-            if (!fileInfo) {
-              fileInfo = {
-                hash: jsonData.fileHash, // SHA1 en hex
-                name: jsonData.fileName,
-                size: jsonData.fileSize,
-              };
-              totalChunks = jsonData.totalChunks;
-              console.log("File info received:", fileInfo);
-            }
-            return;
-          }
-        } catch (e) {
-          // Pas du JSON, probablement un chunk binaire encodé en string
-        }
-      }
-
       // Si on n'a pas encore les infos du fichier, ignorer les chunks
-      if (!fileInfo || !totalChunks) {
+      if (!fileInfo) {
         console.log("Waiting for file info QR code first...");
         return;
       }
 
-      // Convertir la string en bytes (le QR code binaire est décodé en ISO-8859-1/Latin1)
+      // Convertir Int8Array (valeurs signées) en Uint8Array (valeurs non-signées)
       let bytes;
-      if (typeof data === "string") {
-        // Le scanner retourne une string, mais c'est du binaire encodé en Latin1
-        bytes = new Uint8Array(data.length);
-        for (let i = 0; i < data.length; i++) {
-          bytes[i] = data.charCodeAt(i) & 0xff;
+      if (symbol.data instanceof Int8Array) {
+        // zbar-wasm retourne un Int8Array, on doit le convertir en Uint8Array
+        bytes = new Uint8Array(symbol.data.length);
+        for (let i = 0; i < symbol.data.length; i++) {
+          // Convertir valeur signée (-128 à 127) en non-signée (0 à 255)
+          bytes[i] = symbol.data[i] & 0xff;
         }
+      } else if (symbol.data instanceof Uint8Array) {
+        bytes = symbol.data;
       } else {
-        // Au cas où on aurait directement un Uint8Array (peu probable)
-        bytes = data;
+        console.error("Invalid symbol data type");
+        return;
       }
 
       // Format: [SHA1(20)][chunkIndex(1-3 octets)][data]
       if (bytes.length < 21) {
         scanningStats.errors++;
-        console.error("Chunk trop petit:", bytes.length);
+        console.error("Chunk too short:", bytes.length);
         return;
       }
 
@@ -197,12 +193,17 @@
 
       // Vérifier que le chunk appartient au même fichier
       if (chunkHash !== fileInfo.hash) {
-        console.warn("Chunk d'un autre fichier détecté");
+        console.warn(
+          "Chunk hash does not match file hash:",
+          chunkHash,
+          "expected:",
+          fileInfo.hash
+        );
         return;
       }
 
       // Déterminer le nombre d'octets pour l'index
-      const indexBytes = getIndexBytes(totalChunks);
+      const indexBytes = getIndexBytes(fileInfo.totalChunks);
 
       // Extraire l'index du chunk (big endian)
       let chunkIndex = 0;
@@ -211,9 +212,9 @@
       }
 
       // Vérifier la validité de l'index
-      if (chunkIndex < 0 || chunkIndex >= totalChunks) {
+      if (chunkIndex < 0 || chunkIndex >= fileInfo.totalChunks) {
         scanningStats.errors++;
-        console.error("Index de chunk invalide:", chunkIndex);
+        console.error("Invalid chunk index:", chunkIndex);
         return;
       }
 
@@ -232,36 +233,34 @@
       lastChunkTime = Date.now();
 
       console.log(
-        `Chunk ${chunkIndex + 1}/${totalChunks} reçu (${chunkData.length} bytes)`
+        `Received chunk ${chunkIndex + 1}/${fileInfo.totalChunks} (${chunkData.length} bytes)`
       );
 
       // Vérifier si tous les chunks sont reçus
-      if (receivedCount === totalChunks) {
+      if (receivedCount === fileInfo.totalChunks) {
+        stopScanning();
         assembleFile();
       }
     } catch (error) {
       scanningStats.errors++;
-      console.error("Erreur de traitement du QR code:", error);
+      console.error("Error processing QR code:", error);
     }
   }
 
   // Fonction pour assembler le fichier à partir des chunks
   async function assembleFile() {
-    console.log("Assemblage du fichier...");
+    console.log("Assembling file...");
 
     try {
       // Trier les chunks par index
-      const sortedChunks = [];
-      for (let i = 0; i < totalChunks; i++) {
+      const chunks = [];
+      for (let i = 0; i < fileInfo.totalChunks; i++) {
         if (!receivedChunks.has(i)) {
-          console.error(`Chunk ${i} manquant`);
+          console.error(`missing chunk: ${i}`);
           return;
         }
-        sortedChunks.push(receivedChunks.get(i));
+        chunks.push(receivedChunks.get(i));
       }
-
-      // Les chunks sont déjà en bytes, pas besoin de décoder base64
-      const chunks = sortedChunks; // Ce sont déjà des Uint8Array
 
       // Calculer la taille totale
       const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
@@ -282,28 +281,27 @@
         .join("");
 
       if (calculatedHash !== fileInfo.hash) {
-        alert("⚠ Erreur: Le hash du fichier ne correspond pas !");
-        console.error("Hash attendu:", fileInfo.hash);
-        console.error("Hash calculé:", calculatedHash);
+        alert("⚠ Error: File hash does not match!");
+        console.error("Expected hash:", fileInfo.hash);
+        console.error("Calculated hash:", calculatedHash);
         return;
       }
 
-      // Créer un blob et une URL de téléchargement
+      // Create a blob and a download URL
       const blob = new Blob([fileData]);
       downloadUrl = URL.createObjectURL(blob);
 
-      console.log("✓ Fichier assemblé avec succès !");
-      stopScanning();
+      console.log("✓ File assembled successfully!");
     } catch (error) {
-      console.error("Erreur lors de l'assemblage du fichier:", error);
-      alert("Erreur lors de l'assemblage du fichier");
+      console.error("Error assembling file:", error);
+      alert("Error assembling file: " + error.message);
     }
   }
 
   // Fonction pour générer le QR code de récupération
   async function generateRecoveryQR() {
     missingChunks = [];
-    for (let i = 0; i < totalChunks; i++) {
+    for (let i = 0; i < fileInfo.totalChunks; i++) {
       if (!receivedChunks.has(i)) {
         missingChunks.push(i);
       }
@@ -353,7 +351,6 @@
     fileInfo = null;
     recoveryQRCode = "";
     downloadUrl = "";
-    totalChunks = 0;
     receivedCount = 0;
     missingChunks = [];
     scanningStats = {
@@ -419,23 +416,24 @@
           <p><strong>Fichier:</strong> {fileInfo.name}</p>
           <p>
             <strong>Hash:</strong>
-            <code>{fileInfo.hash.substring}</code>
+            <code>{fileInfo.hash}</code>
           </p>
         </div>
 
         <div class="progress-section">
           <p class="progress-text">
-            {receivedCount} / {totalChunks} chunks received ({progress.toFixed(
-              1
-            )}%)
+            {receivedCount} / {fileInfo.totalChunks} chunks received ({(
+              (receivedCount / fileInfo.totalChunks) *
+              100
+            ).toFixed(1)}%)
           </p>
 
           <div class="chunks-grid">
-            {#each Array(totalChunks) as _, i}
+            {#each Array(fileInfo.totalChunks) as _, i}
               <div
                 class="chunk-box"
                 class:received={receivedChunks.has(i)}
-                title="Chunk {i + 1}/{totalChunks}"
+                title="Chunk {i + 1}/{fileInfo.totalChunks}"
               ></div>
             {/each}
           </div>
