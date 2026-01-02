@@ -3,6 +3,20 @@
   import { scanImageData } from "@undecaf/zbar-wasm";
   import QRCode from "qrcode";
 
+  // Fonction utilitaire pour convertir un hash binaire en hex (pour comparaison)
+  function bytesToHex(bytes) {
+    return Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  // Fonction pour déterminer le nombre d'octets utilisés pour l'index
+  function getIndexBytes(totalChunks) {
+    if (totalChunks <= 255) return 1;
+    if (totalChunks <= 65535) return 2;
+    return 3;
+  }
+
   // DOM references should NOT use $state() - use regular let for bind:this
   let videoElement;
   let canvas;
@@ -102,6 +116,7 @@
 
         // Traiter tous les QR codes détectés
         if (symbols && symbols.length > 0) {
+          console.log("symbols detected:", symbols);
           for (const symbol of symbols) {
             const data = symbol.decode();
             if (data && data.length > 0) {
@@ -119,60 +134,106 @@
 
   // Fonction pour traiter les données du QR code
   function processQRCode(data) {
-    console.log("QR code data received:", data);
+    console.log(
+      "QR code data received, type:",
+      typeof data,
+      "length:",
+      data.length
+    );
     scanningStats.totalScanned++;
 
     try {
-      const chunk = JSON.parse(data);
+      // Essayer de décoder comme JSON d'abord (pour le QR d'info)
+      if (typeof data === "string") {
+        try {
+          const jsonData = JSON.parse(data);
 
-      // Check if this is file info (initial QR code)
-      if (chunk.type === "fileInfo") {
-        if (!fileInfo) {
-          fileInfo = {
-            hash: chunk.fileHash,
-            name: chunk.fileName,
-            size: chunk.fileSize,
-          };
-          totalChunks = chunk.totalChunks;
-          console.log("File info received:", fileInfo);
+          // Check if this is file info (initial QR code)
+          if (jsonData.type === "fileInfo") {
+            if (!fileInfo) {
+              fileInfo = {
+                hash: jsonData.fileHash, // SHA1 en hex
+                name: jsonData.fileName,
+                size: jsonData.fileSize,
+              };
+              totalChunks = jsonData.totalChunks;
+              console.log("File info received:", fileInfo);
+            }
+            return;
+          }
+        } catch (e) {
+          // Pas du JSON, probablement un chunk binaire encodé en string
         }
+      }
+
+      // Si on n'a pas encore les infos du fichier, ignorer les chunks
+      if (!fileInfo || !totalChunks) {
+        console.log("Waiting for file info QR code first...");
         return;
       }
 
-      // Vérifier que c'est un chunk valide
-      if (!chunk.fileHash || chunk.chunkIndex === undefined || !chunk.data) {
+      // Convertir la string en bytes (le QR code binaire est décodé en ISO-8859-1/Latin1)
+      let bytes;
+      if (typeof data === "string") {
+        // Le scanner retourne une string, mais c'est du binaire encodé en Latin1
+        bytes = new Uint8Array(data.length);
+        for (let i = 0; i < data.length; i++) {
+          bytes[i] = data.charCodeAt(i) & 0xff;
+        }
+      } else {
+        // Au cas où on aurait directement un Uint8Array (peu probable)
+        bytes = data;
+      }
+
+      // Format: [SHA1(20)][chunkIndex(1-3 octets)][data]
+      if (bytes.length < 21) {
         scanningStats.errors++;
+        console.error("Chunk trop petit:", bytes.length);
         return;
       }
 
-      // Initialiser les infos du fichier si c'est le premier chunk
-      if (!fileInfo) {
-        fileInfo = {
-          hash: chunk.fileHash,
-          name: chunk.fileName,
-          totalChunks: chunk.totalChunks,
-        };
-        totalChunks = chunk.totalChunks;
-      }
+      // Extraire le hash SHA1 (20 premiers octets)
+      const chunkHash = bytesToHex(bytes.slice(0, 20));
 
       // Vérifier que le chunk appartient au même fichier
-      if (chunk.fileHash !== fileInfo.hash) {
+      if (chunkHash !== fileInfo.hash) {
         console.warn("Chunk d'un autre fichier détecté");
         return;
       }
 
+      // Déterminer le nombre d'octets pour l'index
+      const indexBytes = getIndexBytes(totalChunks);
+
+      // Extraire l'index du chunk (big endian)
+      let chunkIndex = 0;
+      for (let i = 0; i < indexBytes; i++) {
+        chunkIndex = (chunkIndex << 8) | bytes[20 + i];
+      }
+
+      // Vérifier la validité de l'index
+      if (chunkIndex < 0 || chunkIndex >= totalChunks) {
+        scanningStats.errors++;
+        console.error("Index de chunk invalide:", chunkIndex);
+        return;
+      }
+
       // Vérifier si on a déjà ce chunk
-      if (receivedChunks.has(chunk.chunkIndex)) {
+      if (receivedChunks.has(chunkIndex)) {
         scanningStats.duplicates++;
         return;
       }
 
-      // Stocker le chunk
-      receivedChunks.set(chunk.chunkIndex, chunk.data);
+      // Extraire les données du chunk (après le header)
+      const chunkData = bytes.slice(20 + indexBytes);
+
+      // Stocker le chunk (en bytes bruts)
+      receivedChunks.set(chunkIndex, chunkData);
       receivedCount = receivedChunks.size;
       lastChunkTime = Date.now();
 
-      console.log(`Chunk ${chunk.chunkIndex + 1}/${totalChunks} reçu`);
+      console.log(
+        `Chunk ${chunkIndex + 1}/${totalChunks} reçu (${chunkData.length} bytes)`
+      );
 
       // Vérifier si tous les chunks sont reçus
       if (receivedCount === totalChunks) {
@@ -199,15 +260,8 @@
         sortedChunks.push(receivedChunks.get(i));
       }
 
-      // Décoder les chunks base64 et les assembler
-      const chunks = sortedChunks.map((base64) => {
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes;
-      });
+      // Les chunks sont déjà en bytes, pas besoin de décoder base64
+      const chunks = sortedChunks; // Ce sont déjà des Uint8Array
 
       // Calculer la taille totale
       const totalSize = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
@@ -220,8 +274,8 @@
         offset += chunk.length;
       }
 
-      // Vérifier le hash
-      const hashBuffer = await crypto.subtle.digest("SHA-256", fileData);
+      // Vérifier le hash (SHA1 pour correspondre au sender)
+      const hashBuffer = await crypto.subtle.digest("SHA-1", fileData);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const calculatedHash = hashArray
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -365,7 +419,7 @@
           <p><strong>Fichier:</strong> {fileInfo.name}</p>
           <p>
             <strong>Hash:</strong>
-            <code>{fileInfo.hash.substring(0, 16)}...</code>
+            <code>{fileInfo.hash.substring}</code>
           </p>
         </div>
 

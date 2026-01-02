@@ -5,6 +5,8 @@
 
   // QR Code capacity limits (in bytes) for binary data based on error correction level
   // These are approximate values for QR code version 40 (largest)
+  // Format binaire pur (pas de base64) : SHA1(20) + chunkIndex(1-3 octets) = 21-23 octets de header
+  // Le totalChunks est dans le QR d'info initial (pas dans chaque chunk)
   const QR_CAPACITY = {
     L: 2953, // Low (7% error correction)
     M: 2331, // Medium (15% error correction)
@@ -14,7 +16,7 @@
 
   let selectedFile = $state(null);
   let fileChunks = $state([]);
-  let fileHash = $state("");
+  let fileHash = $state(null); // Stocke maintenant un Uint8Array de 20 octets
   let isTransmitting = $state(false);
   let currentChunkIndex = $state(0);
   let qrCodeUrl = $state("");
@@ -39,10 +41,11 @@
 
   // Get maximum chunk size based on error correction level
   function getMaxChunkSize() {
-    // Account for JSON overhead (fileHash, fileName, chunkIndex, totalChunks)
-    // Typical overhead is ~150-200 bytes, we use 250 to be safe
-    const jsonOverhead = 250;
-    return QR_CAPACITY[errorCorrectionLevel] - jsonOverhead;
+    // Format binaire optimisé: SHA1(20) + chunkIndex(1-3 octets selon totalChunks)
+    // On utilise le pire cas (3 octets) pour le calcul
+    // Transport direct en binaire (plus de base64 !)
+    const binaryHeader = 23; // SHA1(20) + index(3 max)
+    return QR_CAPACITY[errorCorrectionLevel] - binaryHeader;
   }
 
   // Validate and adjust chunk size
@@ -56,43 +59,61 @@
     }
   }
 
-  // Fonction pour calculer le hash SHA-256 d'un fichier
-  async function calculateSHA256(file) {
+  // Fonction pour calculer le hash SHA-1 d'un fichier (20 octets au lieu de 32 pour SHA-256)
+  async function calculateSHA1(file) {
     const arrayBuffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    const hashBuffer = await crypto.subtle.digest("SHA-1", arrayBuffer);
+    return new Uint8Array(hashBuffer); // Retourne directement les bytes
+  }
+
+  // Fonction utilitaire pour convertir un hash binaire en hex (pour affichage)
+  function bytesToHex(bytes) {
+    return Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   // Fonction pour découper le fichier en chunks
   async function processFile() {
     if (!selectedFile) return;
 
-    // Calculer le hash du fichier
-    fileHash = await calculateSHA256(selectedFile);
+    // Calculer le hash du fichier (SHA1 = 20 octets)
+    fileHash = await calculateSHA1(selectedFile);
 
     // Lire le fichier
     const arrayBuffer = await selectedFile.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Découper en chunks
+    // Découper en chunks avec format binaire optimisé
     fileChunks = [];
     totalChunks = Math.ceil(uint8Array.length / chunkSize);
+
+    // Déterminer le nombre d'octets nécessaires pour l'index
+    let indexBytes = 1; // Par défaut 1 octet (max 255)
+    if (totalChunks > 255) indexBytes = 2; // 2 octets (max 65535)
+    if (totalChunks > 65535) indexBytes = 3; // 3 octets (max 16777215)
 
     for (let i = 0; i < totalChunks; i++) {
       const start = i * chunkSize;
       const end = Math.min(start + chunkSize, uint8Array.length);
       const chunkData = uint8Array.slice(start, end);
 
-      // Convert to base64 for transport
-      const base64Chunk = btoa(String.fromCharCode(...chunkData));
+      // Format binaire optimisé: [SHA1(20)][chunkIndex(1-3 octets)][data]
+      const binaryChunk = new Uint8Array(20 + indexBytes + chunkData.length);
+      binaryChunk.set(fileHash, 0); // SHA1: 20 octets
 
+      // Encoder l'index sur indexBytes octets (big endian)
+      for (let j = 0; j < indexBytes; j++) {
+        binaryChunk[20 + j] = (i >> (8 * (indexBytes - 1 - j))) & 0xff;
+      }
+
+      binaryChunk.set(chunkData, 20 + indexBytes); // Les données du chunk
+
+      // Pas d'encodage base64 ! On garde le binaire brut
       fileChunks.push({
-        fileHash: fileHash,
-        fileName: selectedFile.name,
-        chunkIndex: i,
-        totalChunks: totalChunks,
-        data: base64Chunk,
+        binaryData: binaryChunk, // Format binaire pur (Uint8Array)
+        chunkIndex: i, // Gardé pour l'affichage/debug
+        fileName: selectedFile.name, // Gardé pour l'info QR
       });
     }
 
@@ -104,7 +125,7 @@
   async function generateInfoQRCode() {
     const infoData = {
       type: "fileInfo",
-      fileHash: fileHash,
+      fileHash: bytesToHex(fileHash), // SHA1 en hex pour le JSON
       fileName: selectedFile.name,
       fileSize: selectedFile.size,
       totalChunks: totalChunks,
@@ -181,9 +202,16 @@
       const chunk = chunksToTransmit[currentChunkIndex + i];
 
       try {
-        // Generate QR code with chunk data
-        const qrData = JSON.stringify(chunk);
-        const qrPromise = QRCode.toDataURL(qrData, {
+        // Generate QR code avec données binaires pures (Uint8Array)
+        // La librairie qrcode nécessite un format de segment pour le mode byte
+        const segments = [
+          {
+            data: chunk.binaryData,
+            mode: "byte",
+          },
+        ];
+
+        const qrPromise = QRCode.toDataURL(segments, {
           errorCorrectionLevel: errorCorrectionLevel,
           margin: 1,
           width: 1000,
@@ -280,7 +308,7 @@
                 const recoveryData = JSON.parse(data);
                 if (
                   recoveryData.type === "recovery" &&
-                  recoveryData.fileHash === fileHash
+                  recoveryData.fileHash === bytesToHex(fileHash)
                 ) {
                   missingChunks = recoveryData.missingChunks;
                   stopRecoveryScanner();
@@ -319,7 +347,7 @@
     stopRecoveryScanner();
     selectedFile = null;
     fileChunks = [];
-    fileHash = "";
+    fileHash = null;
     currentChunkIndex = 0;
     qrCodeUrl = "";
     qrCodeUrls = [];
@@ -372,7 +400,7 @@
             selectedFile.size / 1000
           )} kB → {totalChunks} chunks)
         </p>
-        <p>Hash: <code>sha256:{fileHash}</code></p>
+        <p>Hash: <code>sha1:{fileHash ? bytesToHex(fileHash) : ""}</code></p>
       </div>
     {/if}
     <details>
